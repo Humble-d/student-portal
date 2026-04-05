@@ -43,59 +43,73 @@
 </div>
 
 
-<script>
-function verifyAccess() {
-  const codeInput = document.getElementById('secretCode').value.trim();
-  const btn = document.querySelector('.btn-orange') || document.querySelector('.modern-btn');
 
-  if (!codeInput) {
-    alert("Please enter your access code first!");
+
+    <script>
+async function uploadLessonFile() {
+  const fileInput = document.getElementById('lessonFile'); // Your file input ID
+  const btn = document.getElementById('uploadBtn'); // Your green button ID
+  
+  if (!fileInput.files.length) {
+    alert("Please select a file first!");
     return;
   }
-  
-  btn.innerText = "Checking...";
+
+  const file = fileInput.files[0];
+  btn.innerText = "PROCESSING...";
   btn.disabled = true;
 
-  // 1. Put your fresh /exec Web App URL here!
-  const webAppUrl = "https://script.google.com/macros/s/AKfycbwbZLXOP_Vx8vtEcSWAuVcbLvNNcjdGrGHJK9BXm5eWC3UbQOJRF1NVuFDMXyJ4nf3inw/exec";
+  const reader = new FileReader();
   
-  const callbackName = "studentAuth_" + Math.random().toString(36).substr(2, 9);
-  
-  window[callbackName] = function(data) {
-    btn.innerText = "Gain Access";
-    btn.disabled = false;
+  reader.onload = async function(e) {
+    const base64Data = e.target.result.split(',')[1];
     
-    if (data.result === "Valid") {
-      alert("Access Granted!");
-      localStorage.setItem("hct_access", "granted");
-      window.location.href = "portal.html"; 
-    } else {
-      alert("Invalid Code. Please make sure you entered it correctly.");
+    // We break the file into 500KB chunks so Google doesn't crash
+    const chunkSize = 500000; 
+    const totalChunks = Math.ceil(base64Data.length / chunkSize);
+    const fileId = "file_" + Math.random().toString(36).substr(2, 9);
+
+    for (let i = 0; i < totalChunks; i++) {
+      const start = i * chunkSize;
+      const end = Math.min(start + chunkSize, base64Data.length);
+      const chunk = base64Data.slice(start, end);
+      
+      btn.innerText = `UPLOADING (${Math.round((i / totalChunks) * 100)}%)...`;
+
+      const payload = {
+        action: "upload_chunk",
+        fileId: fileId,
+        chunk: chunk,
+        chunkIndex: i,
+        totalChunks: totalChunks,
+        fileName: file.name,
+        mimeType: file.type
+      };
+
+      try {
+        const response = await fetch("https://script.google.com/macros/s/AKfycby5CQVpB-T7WsHo6pWTXCl1tsis-DCVd-gGA7B08UbcXxLvKGawL8FJdydvyKixN3ELkg/exec", {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+        
+        const result = await response.text();
+        
+        if (i === totalChunks - 1) {
+          alert("Success! File uploaded directly to your drive and registered.");
+          btn.innerText = "UPLOAD COMPLETED";
+          location.reload(); // Refresh to see the new lesson
+        }
+      } catch (error) {
+        console.error(error);
+        alert("Upload failed. Trying again might help.");
+        btn.innerText = "TRY AGAIN";
+        btn.disabled = false;
+        return;
+      }
     }
-    
-    cleanup();
   };
-
-  const scriptElement = document.createElement('script');
-  scriptElement.id = callbackName;
   
-  const cacheBuster = "&t=" + new Date().getTime();
-  scriptElement.src = `${webAppUrl}?code=${encodeURIComponent(codeInput)}&callback=${callbackName}${cacheBuster}`;
-  
-  scriptElement.onerror = function() {
-      alert("Network connection error. Please try again.");
-      btn.innerText = "Gain Access";
-      btn.disabled = false;
-      cleanup();
-  };
-
-  function cleanup() {
-    const el = document.getElementById(callbackName);
-    if (el) document.body.removeChild(el);
-    delete window[callbackName];
-  }
-
-  document.body.appendChild(scriptElement);
+  reader.readAsDataURL(file);
 }
 </script>
 
