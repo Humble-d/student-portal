@@ -54,11 +54,12 @@ async function verifyAccess() {
   btn.disabled = true; // Stop them from clicking multiple times
   
   try {
-    const webAppUrl = "https://script.google.com/macros/s/AKfycbx9Nmen8vOnh2ND0OF4xvSMZB0QO5_dT4s-5iW__FOiWszBZKYerGozfWwP1RGVUzOxOg/exec";
+    const webAppUrl = "https://script.google.com/macros/s/AKfycbwXMwmSWI6tdhhEybW__MqVLg-G0LeOyv5tmGtktdW9PbIrApfkiijoalQQ5EZupFpwtg/exec";
     
-    // Send the code to Google Sheets to check securely
-    const response = await fetch(`${webAppUrl}?code=${codeInput}`);
-    const result = await response.text();
+
+// This creates a clean GET request sending the code in the URL
+const response = await fetch(`${webAppUrl}?code=${codeInput.trim()}`);
+const result = await response.text();
     
     if (result.trim() === "Valid") {
       btn.innerText = "Access Granted!";
