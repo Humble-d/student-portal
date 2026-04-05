@@ -721,11 +721,15 @@ async function checkAdminPass() {
     btn.disabled = true;
 
     try {
-        // We securely send the password to Google instead of checking it in the browser!
+        // 1. Double check that your scriptURL is defined at the top of your file!
+        const scriptURL = "https://script.google.com/macros/s/AKfycbx9Nmen8vOnh2ND0OF4xvSMZB0QO5_dT4s-5iW__FOiWszBZKYerGozfWwP1RGVUzOxOg/exec";
+
+        // 2. We send both variables right in the URL string
         const response = await fetch(`${scriptURL}?action=adminLogin&password=${encodeURIComponent(input)}`);
         const result = await response.text();
 
         if (result.trim() === "Authorized") {
+            // Unlocks the dashboard
             document.getElementById('adminAuth').style.display = 'none';
             document.getElementById('adminPanel').style.display = 'block';
             
@@ -738,7 +742,7 @@ async function checkAdminPass() {
         }
     } catch (error) {
         console.error("Error:", error);
-        alert("A connection error occurred. Please check your internet.");
+        alert("A connection error occurred. Please check your internet connection.");
     } finally {
         btn.innerText = "Unlock Admin Panel";
         btn.disabled = false;
