@@ -42,78 +42,64 @@
     </div> 
 </div>
 
+<script>
+function verifyAccess() {
+  const codeInput = document.getElementById('secretCode').value.trim();
+  const btn = document.querySelector('.btn-orange');
 
-
-
-    <script>
-async function uploadLessonFile() {
-  const fileInput = document.getElementById('lessonFile'); // Your file input ID
-  const btn = document.getElementById('uploadBtn'); // Your green button ID
-  
-  if (!fileInput.files.length) {
-    alert("Please select a file first!");
+  if (!codeInput) {
+    alert("Please enter your access code first!");
     return;
   }
-
-  const file = fileInput.files[0];
-  btn.innerText = "PROCESSING...";
+  
+  btn.innerText = "Checking...";
   btn.disabled = true;
 
-  const reader = new FileReader();
+  // 1. Direct Web App URL
+  const webAppUrl = "https://script.google.com/macros/s/AKfycby5CQVpB-T7WsHo6pWTXCl1tsis-DCVd-gGA7B08UbcXxLvKGawL8FJdydvyKixN3ELkg/exec";
   
-  reader.onload = async function(e) {
-    const base64Data = e.target.result.split(',')[1];
+  // 2. We generate a random name for the listener to safely bypass security blocks
+  const callbackName = "studentAuth_" + Math.random().toString(36).substr(2, 9);
+  
+  // 3. This catches Google's response
+  window[callbackName] = function(data) {
+    btn.innerText = "PROCEED";
+    btn.disabled = false;
     
-    // We break the file into 500KB chunks so Google doesn't crash
-    const chunkSize = 500000; 
-    const totalChunks = Math.ceil(base64Data.length / chunkSize);
-    const fileId = "file_" + Math.random().toString(36).substr(2, 9);
-
-    for (let i = 0; i < totalChunks; i++) {
-      const start = i * chunkSize;
-      const end = Math.min(start + chunkSize, base64Data.length);
-      const chunk = base64Data.slice(start, end);
-      
-      btn.innerText = `UPLOADING (${Math.round((i / totalChunks) * 100)}%)...`;
-
-      const payload = {
-        action: "upload_chunk",
-        fileId: fileId,
-        chunk: chunk,
-        chunkIndex: i,
-        totalChunks: totalChunks,
-        fileName: file.name,
-        mimeType: file.type
-      };
-
-      try {
-        const response = await fetch("https://script.google.com/macros/s/AKfycby5CQVpB-T7WsHo6pWTXCl1tsis-DCVd-gGA7B08UbcXxLvKGawL8FJdydvyKixN3ELkg/exec", {
-          method: "POST",
-          body: JSON.stringify(payload)
-        });
-        
-        const result = await response.text();
-        
-        if (i === totalChunks - 1) {
-          alert("Success! File uploaded directly to your drive and registered.");
-          btn.innerText = "UPLOAD COMPLETED";
-          location.reload(); // Refresh to see the new lesson
-        }
-      } catch (error) {
-        console.error(error);
-        alert("Upload failed. Trying again might help.");
-        btn.innerText = "TRY AGAIN";
-        btn.disabled = false;
-        return;
-      }
+    if (data.result === "Valid") {
+      alert("Access Granted!");
+      localStorage.setItem("hct_access", "granted");
+      window.location.href = "portal.html"; 
+    } else {
+      alert("Invalid Code. Please make sure you entered it correctly.");
     }
+    
+    cleanup();
   };
+
+  const scriptElement = document.createElement('script');
+  scriptElement.id = callbackName;
   
-  reader.readAsDataURL(file);
+  // We add the time at the end to force the browser to ignore its saved memory!
+  const cacheBuster = "&t=" + new Date().getTime();
+  scriptElement.src = `${webAppUrl}?code=${encodeURIComponent(codeInput)}&callback=${callbackName}${cacheBuster}`;
+  
+  scriptElement.onerror = function() {
+      alert("Network error. Your Google Script might be taking too long to load.");
+      btn.innerText = "PROCEED";
+      btn.disabled = false;
+      cleanup();
+  };
+
+  function cleanup() {
+    const el = document.getElementById(callbackName);
+    if (el) document.body.removeChild(el);
+    delete window[callbackName];
+  }
+
+  document.body.appendChild(scriptElement);
 }
 </script>
-
-    
 
 </body>
 </html>
