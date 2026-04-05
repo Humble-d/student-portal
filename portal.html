@@ -711,7 +711,8 @@ function closeTask() { document.getElementById('taskModal').style.display = 'non
 
 // --- ADMIN & SECURITY LOGIC ---
 // --- SECURE ADMIN LOGIC ---
-async function checkAdminPass() {
+// --- SECURE ADMIN LOGIC (CORS-FREE JSONP) ---
+function checkAdminPass() {
     const input = document.getElementById('adminPass').value;
     const btn = document.querySelector('#adminAuth button');
     
@@ -720,16 +721,18 @@ async function checkAdminPass() {
     btn.innerText = "Verifying...";
     btn.disabled = true;
 
-    try {
-        // 1. Double check that your scriptURL is defined at the top of your file!
-        const scriptURL = "https://script.google.com/macros/s/AKfycbx9Nmen8vOnh2ND0OF4xvSMZB0QO5_dT4s-5iW__FOiWszBZKYerGozfWwP1RGVUzOxOg/exec";
-
-        // 2. We send both variables right in the URL string
-        const response = await fetch(`${scriptURL}?action=adminLogin&password=${encodeURIComponent(input)}`);
-        const result = await response.text();
-
-        if (result.trim() === "Authorized") {
-            // Unlocks the dashboard
+    // Put your actual Google Script URL here
+    const scriptURL = "https://script.google.com/macros/s/AKfycbx9Nmen8vOnh2ND0OF4xvSMZB0QO5_dT4s-5iW__FOiWszBZKYerGozfWwP1RGVUzOxOg/exec";
+    
+    // 1. Create a unique temporary function name
+    const callbackName = "adminAuthCallback_" + Math.random().toString(36).substr(2, 9);
+    
+    // 2. This is the code that will run when Google answers!
+    window[callbackName] = function(data) {
+        btn.innerText = "Unlock Admin Panel";
+        btn.disabled = false;
+        
+        if (data.result === "Authorized") {
             document.getElementById('adminAuth').style.display = 'none';
             document.getElementById('adminPanel').style.display = 'block';
             
@@ -740,13 +743,26 @@ async function checkAdminPass() {
             alert("Incorrect Password. Access Denied.");
             document.getElementById('adminPass').value = "";
         }
-    } catch (error) {
-        console.error("Error:", error);
+        
+        // Cleanup the temporary script and function
+        document.body.removeChild(scriptElement);
+        delete window[callbackName];
+    };
+
+    // 3. Create a script tag to trigger the network request without CORS issues
+    const scriptElement = document.createElement('script');
+    scriptElement.src = `${scriptURL}?action=adminLogin&password=${encodeURIComponent(input)}&callback=${callbackName}`;
+    
+    // Error handling if network fails completely
+    scriptElement.onerror = function() {
         alert("A connection error occurred. Please check your internet connection.");
-    } finally {
         btn.innerText = "Unlock Admin Panel";
         btn.disabled = false;
-    }
+        delete window[callbackName];
+        document.body.removeChild(scriptElement);
+    };
+
+    document.body.appendChild(scriptElement);
 }
 
 
