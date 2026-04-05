@@ -46,7 +46,7 @@
 
 
 <script>
-function verifyAccess() {
+async function verifyAccess() {
   const codeInput = document.getElementById('secretCode').value.trim();
   const btn = document.querySelector('.btn-orange') || document.querySelector('.modern-btn');
 
@@ -58,44 +58,33 @@ function verifyAccess() {
   btn.innerText = "Checking...";
   btn.disabled = true;
 
-  // ⚠️ PUT THE FRESH URL YOU COPIED FROM STEP 2 HERE!
-  const webAppUrl = "https://script.google.com/macros/library/d/1Q8tL7xZr9K2_4uXRfubwLERhYO3i4bKX6qfWq5E4QjmBrxWK8TN36aFl/27";
-  const callbackName = "studentAuth_" + Math.random().toString(36).substr(2, 9);
+  // 1. Put your active Web App URL here!
+  const webAppUrl = "https://script.google.com/macros/s/AKfycbwKqF8KEZjTY51pvTyQKsjIiD7oPyTTxjAyvXkeLe7Wd6FLE3YSeDfl3b1dxv0pQZKQkA/exec";
   
-  // Create global listener for Google's response
-  window[callbackName] = function(data) {
-    btn.innerText = "Gain Access";
-    btn.disabled = false;
+  // 2. This proxy helps GitHub talk to Google without security blocks
+  const proxyUrl = "https://api.allorigins.win/raw?url=";
+
+  try {
+    const finalUrl = proxyUrl + encodeURIComponent(`${webAppUrl}?code=${codeInput}`);
     
-    if (data.result === "Valid") {
+    const response = await fetch(finalUrl);
+    const result = await response.text();
+    
+    if (result.trim() === "Valid") {
       alert("Access Granted!");
       localStorage.setItem("hct_access", "granted");
       window.location.href = "portal.html"; 
     } else {
       alert("Invalid Code. Please make sure you entered it correctly.");
-    }
-    
-    cleanup();
-  };
-
-  const scriptElement = document.createElement('script');
-  scriptElement.id = callbackName;
-  scriptElement.src = `${webAppUrl}?code=${encodeURIComponent(codeInput)}&callback=${callbackName}`;
-  
-  scriptElement.onerror = function() {
-      alert("Network error. Your Google Script URL might be incorrect or not deployed.");
       btn.innerText = "Gain Access";
       btn.disabled = false;
-      cleanup();
-  };
-
-  function cleanup() {
-    const el = document.getElementById(callbackName);
-    if (el) document.body.removeChild(el);
-    delete window[callbackName];
+    }
+  } catch (error) {
+      console.error("Error:", error);
+      alert("Connection error. Please try again.");
+      btn.innerText = "Gain Access";
+      btn.disabled = false;
   }
-
-  document.body.appendChild(scriptElement);
 }
 </script>
 
