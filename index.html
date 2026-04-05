@@ -44,7 +44,7 @@
 
 
 <script>
-async function verifyAccess() {
+function verifyAccess() {
   const codeInput = document.getElementById('secretCode').value.trim();
   const btn = document.querySelector('.btn-orange') || document.querySelector('.modern-btn');
 
@@ -56,33 +56,47 @@ async function verifyAccess() {
   btn.innerText = "Checking...";
   btn.disabled = true;
 
-  // 1. Paste your active Google Web App URL here!
+  // 1. Your active Google Web App URL
   const webAppUrl = "https://script.google.com/macros/s/AKfycbx9Nmen8vOnh2ND0OF4xvSMZB0QO5_dT4s-5iW__FOiWszBZKYerGozfWwP1RGVUzOxOg/exec";
+  const callbackName = "studentAuth_" + Math.random().toString(36).substr(2, 9);
   
-  try {
-    // We add a timestamp to force the browser to skip its saved memory
-    const cacheBuster = "&t=" + new Date().getTime();
-    const finalUrl = `${webAppUrl}?code=${encodeURIComponent(codeInput)}${cacheBuster}`;
+  // 2. This code runs securely when Google responds back!
+  window[callbackName] = function(data) {
+    btn.innerText = "Gain Access";
+    btn.disabled = false;
     
-    // Send direct request to Google!
-    const response = await fetch(finalUrl);
-    const result = await response.text();
-    
-    if (result.trim() === "Valid") {
+    if (data.result === "Valid") {
       alert("Access Granted!");
       localStorage.setItem("hct_access", "granted");
       window.location.href = "portal.html"; 
     } else {
       alert("Invalid Code. Please make sure you entered it correctly.");
-      btn.innerText = "Gain Access";
-      btn.disabled = false;
     }
-  } catch (error) {
-      console.error("Error:", error);
+    
+    cleanup();
+  };
+
+  const scriptElement = document.createElement('script');
+  scriptElement.id = callbackName;
+  
+  // 3. We add the time at the end to force normal browsers to grab fresh data!
+  const cacheBuster = "&t=" + new Date().getTime();
+  scriptElement.src = `${webAppUrl}?code=${encodeURIComponent(codeInput)}&callback=${callbackName}${cacheBuster}`;
+  
+  scriptElement.onerror = function() {
       alert("Network connection error. Please try again.");
       btn.innerText = "Gain Access";
       btn.disabled = false;
+      cleanup();
+  };
+
+  function cleanup() {
+    const el = document.getElementById(callbackName);
+    if (el) document.body.removeChild(el);
+    delete window[callbackName];
   }
+
+  document.body.appendChild(scriptElement);
 }
 </script>
 
