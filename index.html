@@ -56,13 +56,11 @@ function verifyAccess() {
   btn.innerText = "Checking...";
   btn.disabled = true;
 
-  // 1. Direct Web App URL
-  const webAppUrl = "https://script.google.com/macros/s/AKfycbx9Nmen8vOnh2ND0OF4xvSMZB0QO5_dT4s-5iW__FOiWszBZKYerGozfWwP1RGVUzOxOg/exec";
+  // 1. Put your fresh /exec Web App URL here!
+  const webAppUrl = "https://script.google.com/macros/s/AKfycbwbZLXOP_Vx8vtEcSWAuVcbLvNNcjdGrGHJK9BXm5eWC3UbQOJRF1NVuFDMXyJ4nf3inw/exec";
   
-  // 2. We generate a random name for the listener
   const callbackName = "studentAuth_" + Math.random().toString(36).substr(2, 9);
   
-  // 3. This is the net waiting to catch Google's reply!
   window[callbackName] = function(data) {
     btn.innerText = "Gain Access";
     btn.disabled = false;
@@ -78,16 +76,14 @@ function verifyAccess() {
     cleanup();
   };
 
-  // 4. We inject a script tag to cheat Google's cross-site blocks
   const scriptElement = document.createElement('script');
   scriptElement.id = callbackName;
   
-  // We add the time at the end to force the browser to ignore its saved memory!
   const cacheBuster = "&t=" + new Date().getTime();
   scriptElement.src = `${webAppUrl}?code=${encodeURIComponent(codeInput)}&callback=${callbackName}${cacheBuster}`;
   
   scriptElement.onerror = function() {
-      alert("Network error. Your Google Script might be taking too long to load.");
+      alert("Network connection error. Please try again.");
       btn.innerText = "Gain Access";
       btn.disabled = false;
       cleanup();
@@ -102,7 +98,6 @@ function verifyAccess() {
   document.body.appendChild(scriptElement);
 }
 </script>
-
 
     
 
