@@ -40,8 +40,13 @@
             Don't have a code? Chat Admin
         </a>
     </div> 
-</div> <script>
-async function verifyAccess() {
+</div>
+
+
+
+
+<script>
+function verifyAccess() {
   const codeInput = document.getElementById('secretCode').value.trim();
   const btn = document.querySelector('.btn-orange') || document.querySelector('.modern-btn');
 
@@ -52,22 +57,21 @@ async function verifyAccess() {
   
   btn.innerText = "Checking...";
   btn.disabled = true; // Stop them from clicking multiple times
-  
-  try {
-    const webAppUrl = "https://script.google.com/macros/s/AKfycbwXMwmSWI6tdhhEybW__MqVLg-G0LeOyv5tmGtktdW9PbIrApfkiijoalQQ5EZupFpwtg/exec";
-    
 
-// This creates a clean GET request sending the code in the URL
-const response = await fetch(`${webAppUrl}?code=${codeInput.trim()}`);
-const result = await response.text();
-    
-    if (result.trim() === "Valid") {
+  const webAppUrl = "https://script.google.com/macros/s/AKfycbXMwmSWI6tdhhEybW__MqVLg-G0LeOyv5tmGtktdW9PbIrApfkiijoalQQ5EZupFpwtg/exec";
+  
+  // 1. Create a unique temporary function name
+  const callbackName = "studentAuthCallback_" + Math.random().toString(36).substr(2, 9);
+  
+  // 2. This code runs immediately when Google Sheet replies
+  window[callbackName] = function(data) {
+    if (data.result === "Valid") {
       btn.innerText = "Access Granted!";
       btn.style.background = "#2ec4b6"; 
       
       localStorage.setItem("hct_access", "granted");
       
-      // Redirect to the actual dashboard (portal.html)
+      // Redirect to the actual dashboard (portal.html) after a brief pause
       setTimeout(() => {
          window.location.href = "portal.html"; 
       }, 500);
@@ -78,15 +82,35 @@ const result = await response.text();
       btn.style.background = "#f39c12";
       btn.disabled = false;
     }
-  } catch (error) {
-      console.error("Error:", error);
+    
+    // Cleanup: Remove the temporary script and function from memory
+    document.body.removeChild(scriptElement);
+    delete window[callbackName];
+  };
+
+  // 3. Create a dynamic script tag to bypass the CORS block completely
+  const scriptElement = document.createElement('script');
+  scriptElement.src = `${webAppUrl}?code=${encodeURIComponent(codeInput)}&callback=${callbackName}`;
+  
+  // Error handling if network fails completely
+  scriptElement.onerror = function() {
       alert("An error occurred. Please check your connection or try again.");
       btn.innerText = "Gain Access";
       btn.style.background = "#f39c12";
       btn.disabled = false;
-  }
+      
+      // Cleanup on error
+      document.body.removeChild(scriptElement);
+      delete window[callbackName];
+  };
+
+  document.body.appendChild(scriptElement);
 }
 </script>
+
+
+
+    
 
 </body>
 </html>
