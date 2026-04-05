@@ -56,53 +56,44 @@ function verifyAccess() {
   }
   
   btn.innerText = "Checking...";
-  btn.disabled = true; // Stop them from clicking multiple times
+  btn.disabled = true;
 
-  const webAppUrl = "https://script.google.com/macros/s/AKfycbwXMwmSWI6tdhhEybW__MqVLg-G0LeOyv5tmGtktdW9PbIrApfkiijoalQQ5EZupFpwtg/exec";
+  // ⚠️ PUT THE FRESH URL YOU COPIED FROM STEP 2 HERE!
+  const webAppUrl = "https://script.google.com/macros/library/d/1Q8tL7xZr9K2_4uXRfubwLERhYO3i4bKX6qfWq5E4QjmBrxWK8TN36aFl/26";
+  const callbackName = "studentAuth_" + Math.random().toString(36).substr(2, 9);
   
-  // 1. Create a unique temporary function name
-  const callbackName = "studentAuthCallback_" + Math.random().toString(36).substr(2, 9);
-  
-  // 2. This code runs immediately when Google Sheet replies
+  // Create global listener for Google's response
   window[callbackName] = function(data) {
+    btn.innerText = "Gain Access";
+    btn.disabled = false;
+    
     if (data.result === "Valid") {
-      btn.innerText = "Access Granted!";
-      btn.style.background = "#2ec4b6"; 
-      
+      alert("Access Granted!");
       localStorage.setItem("hct_access", "granted");
-      
-      // Redirect to the actual dashboard (portal.html) after a brief pause
-      setTimeout(() => {
-         window.location.href = "portal.html"; 
-      }, 500);
-      
+      window.location.href = "portal.html"; 
     } else {
-      alert("Invalid Code. Please make sure you entered it correctly or reach out for support.");
-      btn.innerText = "Gain Access";
-      btn.style.background = "#f39c12";
-      btn.disabled = false;
+      alert("Invalid Code. Please make sure you entered it correctly.");
     }
     
-    // Cleanup: Remove the temporary script and function from memory
-    document.body.removeChild(scriptElement);
-    delete window[callbackName];
+    cleanup();
   };
 
-  // 3. Create a dynamic script tag to bypass the CORS block completely
   const scriptElement = document.createElement('script');
+  scriptElement.id = callbackName;
   scriptElement.src = `${webAppUrl}?code=${encodeURIComponent(codeInput)}&callback=${callbackName}`;
   
-  // Error handling if network fails completely
   scriptElement.onerror = function() {
-      alert("An error occurred. Please check your connection or try again.");
+      alert("Network error. Your Google Script URL might be incorrect or not deployed.");
       btn.innerText = "Gain Access";
-      btn.style.background = "#f39c12";
       btn.disabled = false;
-      
-      // Cleanup on error
-      document.body.removeChild(scriptElement);
-      delete window[callbackName];
+      cleanup();
   };
+
+  function cleanup() {
+    const el = document.getElementById(callbackName);
+    if (el) document.body.removeChild(el);
+    delete window[callbackName];
+  }
 
   document.body.appendChild(scriptElement);
 }
