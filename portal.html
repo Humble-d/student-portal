@@ -830,13 +830,14 @@ function saveTaskToGoogle() {
     }
 
     const payload = {
+        action: "save_lesson", // 🔥 ADDED THIS: Tells Google what to do!
         course: document.getElementById('adminCourseSelect').value,
         task: document.getElementById('adminTaskNum').value,
         title: document.getElementById('adminTitle').value,
-        body: htmlContent, // Sending the formatted HTML now!
-        image: "", // Not needed, image is inside the body
+        body: htmlContent, 
+        image: "", 
         video: document.getElementById('adminVideo').value,
-        form: "" // Not needed for theory lessons
+        form: "" 
     };
 
     // 2. Modern Fetch (Fixes the "Stuck on Uploading" bug)
