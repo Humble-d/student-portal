@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HCT | Secure Login</title>
+    <style>
+        body { font-family: sans-serif; background: #f4f4f4; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .auth-card { background: white; width: 320px; padding: 40px 20px; border-radius: 30px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .logo-area img { width: 120px; margin-bottom: 20px; }
+        .input-group { margin: 30px 0; border-bottom: 2px solid #eee; }
+        input { border: none; width: 100%; padding: 10px; outline: none; text-align: center; font-size: 1rem; }
+        .btn-orange { background: #f39c12; color: white; border: none; padding: 12px 50px; border-radius: 25px; font-weight: bold; cursor: pointer; transition: 0.3s; width: 100%; }
+        .btn-orange:hover { background: #e67e22; }
+        .footer-link { margin-top: 15px; font-size: 0.8rem; color: #888; text-decoration: none; display: block; }
+        #error-msg { color: red; font-size: 0.8rem; display: none; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="auth-card">
+    <div class="logo-area">
+        <img src="school_logo.png" alt="HCT Logo">
+    </div>
+    
+    <div id="login-step">
+        <div class="input-group">
+            <input type="text" id="secretCode" placeholder="ENTER SECRET ACCESS CODE">
+        </div>
+
+        <button type="button" class="btn-orange" onclick="verifyAccess()">PROCEED</button>
+        
+        <p style="margin-top: 20px; font-size: 0.8rem;">
+            New Student? <a href="signup.html" style="color: #f39c12; font-weight: bold; text-decoration: none;">Register Here</a>
+        </p>
+        
+        <p id="error-msg">Invalid Code. Please pay registration fee.</p>
+
+        <a href="https://wa.me/message/5636MVP3GLY7A1" class="footer-link">
+            Don't have a code? Chat Admin
+        </a>
+    </div> 
+</div> <script>
+async function verifyAccess() {
+  const codeInput = document.getElementById('secretCode').value.trim();
+  const btn = document.querySelector('.btn-orange') || document.querySelector('.modern-btn');
+
+  if (!codeInput) {
+    alert("Please enter your access code first!");
+    return;
+  }
+  
+  btn.innerText = "Checking...";
+  btn.disabled = true; // Stop them from clicking multiple times
+  
+  try {
+    const webAppUrl = "https://script.google.com/macros/s/AKfycbx9Nmen8vOnh2ND0OF4xvSMZB0QO5_dT4s-5iW__FOiWszBZKYerGozfWwP1RGVUzOxOg/exec";
+    
+    // Send the code to Google Sheets to check securely
+    const response = await fetch(`${webAppUrl}?code=${codeInput}`);
+    const result = await response.text();
+    
+    if (result.trim() === "Valid") {
+      btn.innerText = "Access Granted!";
+      btn.style.background = "#2ec4b6"; 
+      
+      localStorage.setItem("hct_access", "granted");
+      
+      // Redirect to the actual dashboard (portal.html)
+      setTimeout(() => {
+         window.location.href = "portal.html"; 
+      }, 500);
+      
+    } else {
+      alert("Invalid Code. Please make sure you entered it correctly or reach out for support.");
+      btn.innerText = "Gain Access";
+      btn.style.background = "#f39c12";
+      btn.disabled = false;
+    }
+  } catch (error) {
+      console.error("Error:", error);
+      alert("An error occurred. Please check your connection or try again.");
+      btn.innerText = "Gain Access";
+      btn.style.background = "#f39c12";
+      btn.disabled = false;
+  }
+}
+</script>
+
+</body>
+</html>
