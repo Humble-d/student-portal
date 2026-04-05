@@ -789,37 +789,87 @@ tinymce.init({
 
 // 2. THIS ADDS THE MISSING SUBMIT BUTTON TO YOUR INTERFACE
 // We will inject the button dynamically right below the word processor
-document.addEventListener("DOMContentLoaded", function() {
-    const adminBodyTextarea = document.getElementById('adminBody');
-    if (adminBodyTextarea) {
-        const submitBtn = document.createElement('button');
-        submitBtn.innerText = "🚀 Upload Lesson to Portals";
-        submitBtn.className = "modern-btn"; // Using your beautiful orange button style
-        submitBtn.style.marginTop = "20px";
-        submitBtn.style.display = "block";
-        submitBtn.style.marginLeft = "auto";
-        submitBtn.style.marginRight = "auto";
+async function uploadLessonFile() {
+  const fileInput = document.getElementById('lessonFile');
+  const btn = document.getElementById('uploadBtn');
+  
+  if (!fileInput || !fileInput.files.length) {
+    alert("Please select a file first!");
+    return;
+  }
+  
+  const file = fileInput.files[0];
+  
+  // Allow Images and PDFs
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+  if (!allowedTypes.includes(file.type)) {
+    alert("Please upload only Images (JPEG/PNG) or PDF files!");
+    return;
+  }
+
+  btn.innerText = "PROCESSING...";
+  btn.disabled = true;
+
+  const reader = new FileReader();
+  
+  reader.onload = async function(e) {
+    const base64Data = e.target.result.split(',')[1];
+    const chunkSize = 500000; // 500KB Chunks
+    const totalChunks = Math.ceil(base64Data.length / chunkSize);
+    const fileId = "file_" + Math.random().toString(36).substr(2, 9);
+
+    for (let i = 0; i < totalChunks; i++) {
+      const start = i * chunkSize;
+      const end = Math.min(start + chunkSize, base64Data.length);
+      const chunk = base64Data.slice(start, end);
+      
+      btn.innerText = `UPLOADING (${Math.round((i / totalChunks) * 100)}%)...`;
+
+      const payload = {
+        action: "upload_chunk",
+        fileId: fileId,
+        chunk: chunk,
+        chunkIndex: i,
+        totalChunks: totalChunks,
+        fileName: file.name,
+        mimeType: file.type
+      };
+
+      try {
+        const response = await fetch("https://script.google.com/macros/s/AKfycby5CQVpB-T7WsHo6pWTXCl1tsis-DCVd-gGA7B08UbcXxLvKGawL8FJdydvyKixN3ELkg/exec", {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
         
-        // This connects the button to your existing save function
-        submitBtn.onclick = function() {
-            saveTaskToGoogle();
-        };
-        
-        // Places the button right after the text editor box
-        adminBodyTextarea.parentNode.appendChild(submitBtn);
+        if (i === totalChunks - 1) {
+          alert("Success! Your heavy file has been uploaded directly.");
+          btn.innerText = "🚀 Upload Lesson to Portals";
+          btn.disabled = false;
+          location.reload(); 
+        }
+      } catch (error) {
+        console.error(error);
+        alert("Upload failed. Try again or check your network.");
+        btn.innerText = "🚀 Upload Lesson to Portals";
+        btn.disabled = false;
+        return;
+      }
     }
-});
-
-
+  };
+  
+  reader.readAsDataURL(file);
+}
 
 function saveTaskToGoogle() {
-    // Looks for our custom button we just added
-    const btn = document.querySelector('.main-content .modern-btn') || event.target;
+    // 1. Grab the button properly
+    const btn = document.querySelector('.main-content .modern-btn') || document.getElementById('uploadBtn');
     btn.innerText = "⏳ Processing...";
     btn.disabled = true;
 
-    // 1. Get the content from the TinyMCE editor
-    // (This contains all your formatting and images!)
+    // 2. Define the script URL inside the function so it doesn't fail!
+    const scriptURL = "https://script.google.com/macros/s/AKfycby5CQVpB-T7WsHo6pWTXCl1tsis-DCVd-gGA7B08UbcXxLvKGawL8FJdydvyKixN3ELkg/exec";
+
+    // 3. Get the content from the TinyMCE editor
     const htmlContent = tinymce.get('adminBody').getContent();
 
     if(!htmlContent || tinymce.get('adminBody').getContent({format: 'text'}).trim() === "") {
@@ -830,7 +880,7 @@ function saveTaskToGoogle() {
     }
 
     const payload = {
-        action: "save_lesson", // 🔥 ADDED THIS: Tells Google what to do!
+        action: "save_lesson", 
         course: document.getElementById('adminCourseSelect').value,
         task: document.getElementById('adminTaskNum').value,
         title: document.getElementById('adminTitle').value,
@@ -840,22 +890,17 @@ function saveTaskToGoogle() {
         form: "" 
     };
 
-    // 2. Modern Fetch (Fixes the "Stuck on Uploading" bug)
-    // We send data as plain text to Google Script to avoid CORS issues.
-        // 2. Modern Fetch (Fixes the "Stuck on Uploading" bug)
+    // 4. Send as plain text to trick CORS security blocks
     fetch(scriptURL, { 
         method: 'POST', 
-        redirect: 'follow', 
+        mode: 'no-cors', // 🔥 ADDED THIS to prevent CORS errors with big TinyMCE data
         body: JSON.stringify(payload) 
     })
-    .then(res => res.text()) 
     .then(() => {
-        // --- ADD THE ANIMATION TRIGGER HERE ---
         if (typeof triggerLevelUp === "function") {
             triggerLevelUp(); 
         }
         
-        // Keep your existing alerts/updates
         console.log(`Success! Task ${payload.task} is now live.`);
         btn.innerText = "🚀 Upload to Portals";
         btn.disabled = false;
@@ -863,20 +908,13 @@ function saveTaskToGoogle() {
         tinymce.get('adminBody').setContent('<p>Lesson Saved Successfully!</p>');
     })
     .catch(err => {
-        // Also trigger it here if you know the save usually works despite the error
         if (typeof triggerLevelUp === "function") { triggerLevelUp(); }
         
         console.error("Upload Error:", err);
         btn.innerText = "🚀 Upload to Portals";
         btn.disabled = false;
     });
-
 }
-
-
-
-
-
 
 
 // --- DRAGGABLE CHAT BOX LOGIC ---
