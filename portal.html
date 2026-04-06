@@ -861,26 +861,26 @@ async function uploadLessonFile() {
 }
 
 function saveTaskToGoogle() {
-    // 1. Grab the button properly
-    const btn = document.querySelector('.main-content .modern-btn') || document.getElementById('uploadBtn');
+    // 1. Correctly identify the button from your screenshot
+    const btn = document.getElementById('uploadBtn') || document.querySelector('.modern-btn');
     btn.innerText = "⏳ Processing...";
     btn.disabled = true;
 
-    // 2. Define the script URL inside the function so it doesn't fail!
+    // 2. Ensure your Script URL is defined inside the function
     const scriptURL = "https://script.google.com/macros/s/AKfycby5CQVpB-T7WsHo6pWTXCl1tsis-DCVd-gGA7B08UbcXxLvKGawL8FJdydvyKixN3ELkg/exec";
 
-    // 3. Get the content from the TinyMCE editor
+    // 3. Get the full HTML (including those illustrations)
     const htmlContent = tinymce.get('adminBody').getContent();
 
     if(!htmlContent || tinymce.get('adminBody').getContent({format: 'text'}).trim() === "") {
         alert("Please write some lesson content!");
-        btn.innerText = "🚀 Upload to Portals";
+        btn.innerText = "🚀 Upload Lesson to Portals";
         btn.disabled = false;
         return;
     }
 
     const payload = {
-        action: "save_lesson", 
+        action: "save_lesson",
         course: document.getElementById('adminCourseSelect').value,
         task: document.getElementById('adminTaskNum').value,
         title: document.getElementById('adminTitle').value,
@@ -890,32 +890,32 @@ function saveTaskToGoogle() {
         form: "" 
     };
 
-    // 4. Send as plain text to trick CORS security blocks
+    // 4. Send as plain text with 'no-cors' to bypass the "hanging" browser issue
     fetch(scriptURL, { 
         method: 'POST', 
-        mode: 'no-cors', // 🔥 ADDED THIS to prevent CORS errors with big TinyMCE data
+        mode: 'no-cors', // 🔥 This is the secret to handling large image data
         body: JSON.stringify(payload) 
     })
     .then(() => {
+        // Success animation
         if (typeof triggerLevelUp === "function") {
             triggerLevelUp(); 
         }
         
-        console.log(`Success! Task ${payload.task} is now live.`);
-        btn.innerText = "🚀 Upload to Portals";
+        alert("Lesson successfully pushed to student portals!");
+        btn.innerText = "🚀 Upload Lesson to Portals";
         btn.disabled = false;
         
-        tinymce.get('adminBody').setContent('<p>Lesson Saved Successfully!</p>');
+        // Clear editor for the next lesson
+        tinymce.get('adminBody').setContent('');
     })
     .catch(err => {
-        if (typeof triggerLevelUp === "function") { triggerLevelUp(); }
-        
         console.error("Upload Error:", err);
-        btn.innerText = "🚀 Upload to Portals";
+        alert("Something went wrong. Check your internet or Script URL.");
+        btn.innerText = "🚀 Upload Lesson to Portals";
         btn.disabled = false;
     });
 }
-
 
 // --- DRAGGABLE CHAT BOX LOGIC ---
 const chatWidget = document.querySelector('.chat-widget');
