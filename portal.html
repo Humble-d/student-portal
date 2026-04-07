@@ -502,6 +502,28 @@
     </svg>
 </a>
 
+    <div id="classroomStage" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:10000; color:white; font-family:'Segoe UI', sans-serif;">
+    
+    <div id="whiteboard" style="position:absolute; top:10%; left:10%; width:80%; height:60%; background:#f8fafc; border:15px solid #334155; border-radius:10px; padding:40px; color:#1e293b; box-shadow:inset 0 0 20px rgba(0,0,0,0.1); overflow-y:auto;">
+        <h1 id="boardHeader" style="border-bottom:2px solid #22c55e; padding-bottom:10px;">Humble Classroom</h1>
+        <div id="boardContent" style="font-size:1.2rem; line-height:1.6; margin-top:20px;">
+            </div>
+    </div>
+
+    <div id="specialTeacher" style="position:absolute; bottom:0; right:5%; width:300px; transition: all 1s ease;">
+        <div id="teacherBubble" style="background:white; color:black; padding:15px; border-radius:20px; position:absolute; top:-100px; left:-100px; width:250px; display:none; border:3px solid #22c55e;">
+            <p id="teacherSpeech" style="margin:0; font-weight:bold;"></p>
+        </div>
+        <img id="teacherImg" src="https://api.dicebear.com/7.x/bottts-neutral/svg?seed=HumbleTeacher&eyes=happy" style="width:100%;">
+    </div>
+
+    <div id="interactionArea" style="position:absolute; bottom:5%; left:10%; width:50%; display:flex; gap:10px;">
+        <input type="text" id="studentQuestion" placeholder="Ask Mr. Humble a question..." style="flex:1; padding:15px; border-radius:30px; border:none; outline:none;">
+        <button onclick="askTeacher()" style="background:#22c55e; border:none; padding:10px 25px; border-radius:30px; color:white; font-weight:bold; cursor:pointer;">ASK</button>
+        <button onclick="nextParagraph()" id="nextBtn" style="background:#3b82f6; border:none; padding:10px 25px; border-radius:30px; color:white; font-weight:bold; cursor:pointer;">CONTINUE</button>
+    </div>
+</div>
+
 
 <script>
   
@@ -1845,28 +1867,38 @@ function initWordProcessor() {
         <button onclick="switchMode('upload')" class="modern-btn" style="background:#334155; padding: 8px 15px;">📎 Upload File</button>
     </div>
 
-    <div id="typeModeSection">
-        <div class="word-processor-container">
-            <div id="toolbar-container" style="border: 1px solid #ccc; background: #fafafa;"></div>
-            <div style="display: flex; gap: 10px; margin-top: 10px;">
-                <div style="flex: 2; border: 1px solid #ccc; background: white; min-height: 500px; padding: 40px; color: #333;" id="wordEditor">
-                    <h2>Humble CyberS Tech</h2>
-                    <p>Start typing your lesson notes here...</p>
-                </div>
-                <div style="flex: 1; background: #121212; border-radius: 20px; padding: 15px; border: 8px solid #333; height: 600px; overflow-y: auto;">
-                    <div style="color: gray; font-size: 0.7rem; text-align: center; margin-bottom: 10px;">📱 STUDENT LIVE PREVIEW</div>
-                    <div id="livePreview" class="lesson-content" style="color: white;"></div>
-                </div>
+  <div id="typeModeSection">
+    <div class="word-processor-container">
+        <div id="toolbar-container" style="border: 1px solid #ccc; background: #fafafa;"></div>
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+            <div style="flex: 2; border: 1px solid #ccc; background: white; min-height: 500px; padding: 40px; color: #333;" id="wordEditor">
+                <h2>Humble CyberS Tech</h2>
+                <p>Start typing your lesson notes here...</p>
+            </div>
+            <div style="flex: 1; background: #121212; border-radius: 20px; padding: 15px; border: 8px solid #333; height: 600px; overflow-y: auto;">
+                <div style="color: gray; font-size: 0.7rem; text-align: center; margin-bottom: 10px;">📱 STUDENT LIVE PREVIEW</div>
+                <div id="livePreview" class="lesson-content" style="color: white;"></div>
             </div>
         </div>
-        <button type="button" class="modern-btn" onclick="submitTypedNote()" style="width:100%; margin-top:20px; background:#22c55e;">🚀 Post Typed Lesson</button>
     </div>
+    <button type="button" class="modern-btn" onclick="submitLessonNote()" style="width:100%; margin-top:20px; background:#22c55e;">🚀 Post Typed Lesson</button>
+</div>
 
-    <div id="uploadModeSection" style="display:none; background:#1e293b; padding:40px; border-radius:15px; text-align:center; border: 2px dashed #22c55e;">
-        <h4 style="color:#22c55e;">Upload Premium Document</h4>
-        <input type="file" id="lessonFile" accept=".pdf,.doc,.docx,image/*" style="margin:20px 0; color:white;">
-        <button type="button" id="uploadBtn" class="modern-btn" onclick="submitLessonNote()" style="background:#22c55e; padding:15px 40px;">🚀 Convert & Upload File</button>
+<div id="uploadModeSection" style="display:none; background:#1e293b; padding:40px; border-radius:15px; text-align:center; border: 2px dashed #22c55e;">
+    <h4 style="color:#22c55e;">Upload Premium Document</h4>
+    <input type="file" id="lessonFile" accept=".pdf,.doc,.docx,image/*" style="margin:20px 0; color:white;">
+    
+    <div id="saveStatus" style="margin: 10px 0; font-weight: bold; color: #f39c12;">☁️ Ready to convert...</div>
+    
+    <button type="button" id="uploadBtn" class="modern-btn" onclick="submitLessonNote()" style="background:#22c55e; padding:15px 40px;">🚀 Convert & Upload File</button>
+</div>
+
+<div id="mascotContainer" style="position: fixed; bottom: 20px; right: -120px; z-index: 1000; display: flex; align-items: center; transition: 0.5s ease;">
+    <div style="background: white; border: 2px solid #22c55e; padding: 10px; border-radius: 15px; margin-right: -10px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); font-size: 0.8rem; color: black; font-weight: bold; max-width: 150px;">
+        <span id="mascotText">Hello! I am Mr. Humble.</span>
     </div>
+    <img id="peekingMascot" src="" style="width: 80px; height: 80px; transform: rotate(-10deg);">
+</div>
 
     <div id="saveStatus" style="margin-top: 10px; font-weight: bold; color: #f39c12;">☁️ Waiting...</div>
 
@@ -1877,6 +1909,9 @@ function initWordProcessor() {
         <img id="peekingMascot" src="" style="width: 80px; height: 80px; transform: rotate(-10deg);">
     </div>
 </div> 
+
+
+    
 <script>
 // 1. THE ENGINE (Initializes everything when page loads)
 document.addEventListener("DOMContentLoaded", function() {
