@@ -1837,48 +1837,45 @@ function initWordProcessor() {
         <option value="Web Dev (HTML/CSS)">Web Dev</option>
         <option value="Graphics Design">Graphics Design</option>
     </select>
-    <input type="number" id="adminTaskNum" placeholder="Task Number (e.g. 6)" class="admin-input">
+    <input type="number" id="adminTaskNum" placeholder="Task Number" class="admin-input">
     <input type="text" id="adminTitle" placeholder="Task Title" class="admin-input">
 
-    <div class="word-processor-container">
+    <div style="display: flex; gap: 10px; margin-bottom: 20px; justify-content: center;">
+        <button onclick="switchMode('type')" style="background:#334155; color:white; padding:8px 15px; border-radius:5px; border:none; cursor:pointer;">⌨️ Type Note</button>
+        <button onclick="switchMode('upload')" style="background:#334155; color:white; padding:8px 15px; border-radius:5px; border:none; cursor:pointer;">📎 Upload File</button>
+    </div>
+
+    <div id="typeModeSection">
         <div id="toolbar-container" style="border: 1px solid #ccc; background: #fafafa;"></div>
-        
         <div style="display: flex; gap: 10px; margin-top: 10px;">
-            
             <div style="flex: 2; border: 1px solid #ccc; background: white; min-height: 500px; padding: 40px; color: #333;" id="wordEditor">
                 <h2>Humble CyberS Tech</h2>
-                <p>Start typing your lesson notes here, and drag or paste your images directly!</p>
+                <p>Start typing your lesson notes here...</p>
             </div>
-
             <div style="flex: 1; background: #121212; border-radius: 20px; padding: 15px; border: 8px solid #333; height: 600px; overflow-y: auto;">
                 <div style="color: gray; font-size: 0.7rem; text-align: center; margin-bottom: 10px;">📱 STUDENT LIVE PREVIEW</div>
                 <div id="livePreview" class="lesson-content" style="color: white;"></div>
             </div>
         </div>
+        <button type="button" class="modern-btn" onclick="submitTypedNote()" style="width:100%; margin-top:20px; background:#22c55e;">🚀 Post Typed Lesson</button>
+    </div>
+
+    <div id="uploadModeSection" style="display:none; background:#1e293b; padding:40px; border-radius:15px; text-align:center; border: 2px dashed #22c55e;">
+        <h4 style="color:#22c55e;">Upload Premium Document</h4>
+        <p style="color:#94a3b8;">Choose a Word, PDF, or high-res Image to convert into a Duo-style lesson.</p>
+        <input type="file" id="lessonFile" accept=".pdf,.doc,.docx,image/*" style="margin:20px 0; color:white;">
+        <br>
+        <button type="button" class="modern-btn" onclick="submitFileNote()" style="background:#22c55e; padding:15px 40px;">🚀 Convert & Upload File</button>
     </div>
 
     <div id="saveStatus" style="margin-top: 10px; font-weight: bold; color: #f39c12;">☁️ Waiting for input...</div>
-
-    <div style="text-align: center; margin: 20px 0; background: #334155; padding: 15px; border-radius: 10px; border: 1px dashed #22c55e;">
-    <label style="color: #22c55e; font-weight: bold; display: block; margin-bottom: 10px;">📎 Attach Lesson Document (PDF/Word/Image):</label>
-    <input type="file" id="lessonFile" accept=".pdf,.doc,.docx,image/*" style="color: white; font-size: 0.9rem;">
-    <p style="color: #94a3b8; font-size: 0.7rem; margin-top: 5px;">Use this if your lesson has many heavy images to prevent freezing.</p>
-</div>
-
-<div style="text-align: center; margin-top: 20px;">
-    <button id="uploadBtn" type="button" class="modern-btn" onclick="submitLessonNote()" style="background: #22c55e; color: white; font-weight: bold; padding: 12px 30px; border: none; border-radius: 5px; cursor: pointer;">
-        🚀 Upload Lesson to Portals
-    </button>
-</div>
-
 </div> 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-    // Check if CKEditor was successfully loaded at the top of the file
     if (typeof DecoupledEditor !== 'undefined') {
         DecoupledEditor
             .create(document.querySelector('#wordEditor'), {
-                // THIS IS THE MAGIC PROPERTY THAT ALLOWS IMAGES TO BE IMPORTED!
+                // Keep your Magic Image Plugin
                 extraPlugins: [ function( editor ) {
                     editor.plugins.get( 'FileRepository' ).createUploadAdapter = ( loader ) => {
                         return {
@@ -1890,7 +1887,7 @@ document.addEventListener("DOMContentLoaded", function() {
                                     reader.readAsDataURL( file );
                                 } ) );
                             },
-                            abort() { /* No cleanup needed for local read */ }
+                            abort() { }
                         };
                     };
                 } ]
@@ -1899,13 +1896,28 @@ document.addEventListener("DOMContentLoaded", function() {
                 const toolbarContainer = document.querySelector('#toolbar-container');
                 toolbarContainer.appendChild(editor.ui.view.toolbar.element);
                 
-                // Save instance globally
                 window.myEditor = editor; 
 
-                // This updates your live preview in real-time as you type!
+                // --- PREMIUM DUOLINGO LIVE PREVIEW LOGIC ---
                 editor.model.document.on('change:data', () => {
                     const data = editor.getData();
-                    document.getElementById('livePreview').innerHTML = data;
+                    const previewContainer = document.getElementById('livePreview');
+                    
+                    // Fixed robot for preview
+                    const previewTeacher = "https://api.dicebear.com/7.x/bottts/svg?seed=Felix";
+
+                    if (data && data.trim() !== "" && !data.includes("Start typing")) {
+                        previewContainer.innerHTML = `
+                            <div class="duo-premium-card">
+                                <img src="${previewTeacher}" class="duo-character-img" alt="Teacher">
+                                <div class="duo-bubble">
+                                    ${data}
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        previewContainer.innerHTML = "<p style='text-align:center; color:gray; padding-top:20px;'>📱 Type a note or switch to 'Upload File' mode...</p>";
+                    }
                 });
             })
             .catch(error => {
