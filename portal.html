@@ -1902,11 +1902,36 @@ document.addEventListener("DOMContentLoaded", function() {
             .then(editor => {
                 const toolbarContainer = document.querySelector('#toolbar-container');
                 toolbarContainer.appendChild(editor.ui.view.toolbar.element);
+                
                 window.myEditor = editor; 
 
-                // This is where we call your NEW preview logic
+                // --- TRIGGER MR. HUMBLE IMMEDIATELY ON LOAD ---
+                const currentTask = document.getElementById('adminTaskNum').value || "1";
+                showPeekingMascot(currentTask);
+
+                // --- PREMIUM DUOLINGO LIVE PREVIEW LOGIC ---
                 editor.model.document.on('change:data', () => {
-                    updateLivePreview(editor.getData());
+                    const data = editor.getData();
+                    const previewContainer = document.getElementById('livePreview');
+                    
+                    // Fixed robot for preview bubble
+                    const previewTeacher = "https://api.dicebear.com/7.x/bottts/svg?seed=Felix";
+
+                    if (data && data.trim() !== "" && !data.includes("Start typing")) {
+                        previewContainer.innerHTML = `
+                            <div class="duo-premium-card">
+                                <img src="${previewTeacher}" class="duo-character-img" alt="Teacher">
+                                <div class="duo-bubble">
+                                    ${data}
+                                </div>
+                            </div>
+                        `;
+                        
+                        // This keeps Mr. Humble visible while you are typing
+                        showPeekingMascot(document.getElementById('adminTaskNum').value || "1");
+                    } else {
+                        previewContainer.innerHTML = "<p style='text-align:center; color:gray; padding-top:20px;'>📱 Type a note or switch to 'Upload File' mode...</p>";
+                    }
                 });
             })
             .catch(error => { console.error(error); });
@@ -1937,6 +1962,7 @@ function updateLivePreview(data) {
         showPeekingMascot(taskNum);
     }
 }
+
 
 function showPeekingMascot(taskNum) {
     const mascot = document.getElementById('peekingMascot');
