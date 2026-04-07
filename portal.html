@@ -860,63 +860,72 @@ async function uploadLessonFile() {
   reader.readAsDataURL(file);
 }
 
-function saveTaskToGoogle() {
-    // 1. Correctly identify the button from your screenshot
+async function saveTaskToGoogle() {
+    const fileInput = document.getElementById('lessonFile');
     const btn = document.getElementById('uploadBtn') || document.querySelector('.modern-btn');
-    btn.innerText = "⏳ Processing...";
-    btn.disabled = true;
-
-    // 2. Ensure your Script URL is defined inside the function
     const scriptURL = "https://script.google.com/macros/s/AKfycby5CQVpB-T7WsHo6pWTXCl1tsis-DCVd-gGA7B08UbcXxLvKGawL8FJdydvyKixN3ELkg/exec";
 
-    // 3. Get the full HTML (including those illustrations)
-    const htmlContent = tinymce.get('adminBody').getContent();
+    // DECISION: If a file is selected, we use the File-to-Note bypass
+    if (fileInput && fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        btn.innerText = "⚡ CONVERTING DOC...";
+        btn.disabled = true;
 
-    if(!htmlContent || tinymce.get('adminBody').getContent({format: 'text'}).trim() === "") {
-        alert("Please write some lesson content!");
-        btn.innerText = "🚀 Upload Lesson to Portals";
-        btn.disabled = false;
-        return;
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            const base64Data = e.target.result.split(',')[1];
+            const chunkSize = 500000; 
+            const totalChunks = Math.ceil(base64Data.length / chunkSize);
+            const fileId = "doc_" + Math.random().toString(36).substr(2, 9);
+
+            for (let i = 0; i < totalChunks; i++) {
+                const chunk = base64Data.slice(i * chunkSize, (i + 1) * chunkSize);
+                btn.innerText = `UPLOADING DOC (${Math.round((i / totalChunks) * 100)}%)...`;
+
+                const payload = {
+                    action: "upload_and_link_lesson", // New action for your Google Script
+                    course: document.getElementById('adminCourseSelect').value,
+                    task: document.getElementById('adminTaskNum').value,
+                    title: document.getElementById('adminTitle').value,
+                    fileId: fileId,
+                    chunk: chunk,
+                    chunkIndex: i,
+                    totalChunks: totalChunks,
+                    fileName: file.name,
+                    mimeType: file.type
+                };
+
+                await fetch(scriptURL, { method: "POST", body: JSON.stringify(payload) });
+                
+                if (i === totalChunks - 1) {
+                    alert("Success! Document converted to Lesson Note.");
+                    location.reload();
+                }
+            }
+        };
+        reader.readAsDataURL(file);
+    } else {
+        // Fallback: Just send the text if no file is selected
+        sendTextOnly(scriptURL, btn);
     }
+}
 
+function sendTextOnly(url, btn) {
+    const htmlContent = tinymce.get('adminBody').getContent();
     const payload = {
         action: "save_lesson",
         course: document.getElementById('adminCourseSelect').value,
         task: document.getElementById('adminTaskNum').value,
         title: document.getElementById('adminTitle').value,
-        body: htmlContent, 
-        image: "", 
-        video: document.getElementById('adminVideo').value,
-        form: "" 
+        body: htmlContent
     };
 
-    // 4. Send as plain text with 'no-cors' to bypass the "hanging" browser issue
-    fetch(scriptURL, { 
-        method: 'POST', 
-        mode: 'no-cors', // 🔥 This is the secret to handling large image data
-        body: JSON.stringify(payload) 
-    })
+    fetch(url, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) })
     .then(() => {
-        // Success animation
-        if (typeof triggerLevelUp === "function") {
-            triggerLevelUp(); 
-        }
-        
-        alert("Lesson successfully pushed to student portals!");
-        btn.innerText = "🚀 Upload Lesson to Portals";
-        btn.disabled = false;
-        
-        // Clear editor for the next lesson
-        tinymce.get('adminBody').setContent('');
-    })
-    .catch(err => {
-        console.error("Upload Error:", err);
-        alert("Something went wrong. Check your internet or Script URL.");
-        btn.innerText = "🚀 Upload Lesson to Portals";
-        btn.disabled = false;
+        alert("Text Lesson Uploaded!");
+        location.reload();
     });
 }
-
 // --- DRAGGABLE CHAT BOX LOGIC ---
 const chatWidget = document.querySelector('.chat-widget');
 const chatHeader = document.querySelector('.chat-header');
@@ -1809,11 +1818,17 @@ function initWordProcessor() {
 
     <div id="saveStatus" style="margin-top: 10px; font-weight: bold; color: #f39c12;">☁️ Waiting for input...</div>
 
-    <div style="text-align: center; margin-top: 20px;">
-        <button type="button" class="modern-btn" onclick="submitLessonNote()" style="background: #22c55e; color: white; font-weight: bold; padding: 12px 30px; border: none; border-radius: 5px; cursor: pointer;">
-            🚀 Upload Lesson to Portals
-        </button>
-    </div>
+    <div style="text-align: center; margin: 20px 0; background: #334155; padding: 15px; border-radius: 10px; border: 1px dashed #22c55e;">
+    <label style="color: #22c55e; font-weight: bold; display: block; margin-bottom: 10px;">📎 Attach Lesson Document (PDF/Word/Image):</label>
+    <input type="file" id="lessonFile" accept=".pdf,.doc,.docx,image/*" style="color: white; font-size: 0.9rem;">
+    <p style="color: #94a3b8; font-size: 0.7rem; margin-top: 5px;">Use this if your lesson has many heavy images to prevent freezing.</p>
+</div>
+
+<div style="text-align: center; margin-top: 20px;">
+    <button id="uploadBtn" type="button" class="modern-btn" onclick="submitLessonNote()" style="background: #22c55e; color: white; font-weight: bold; padding: 12px 30px; border: none; border-radius: 5px; cursor: pointer;">
+        🚀 Upload Lesson to Portals
+    </button>
+</div>
 
 </div> 
 <script>
@@ -1860,19 +1875,13 @@ document.addEventListener("DOMContentLoaded", function() {
 
 // This is the function that triggers when you click the button!
 // --- THIS FUNCTION NOW AUTOMATICALLY "WRAPS" YOUR TEXT IN GAMING LAYOUTS ---
-function submitLessonNote() {
-    let rawEditorData = window.myEditor.getData();
+async function submitLessonNote() {
+    const fileInput = document.getElementById('lessonFile'); 
+    const btn = document.getElementById('uploadBtn');
     const saveStatus = document.getElementById('saveStatus');
+    const scriptURL = "https://script.google.com/macros/s/AKfycby5CQVpB-T7WsHo6pWTXCl1tsis-DCVd-gGA7B08UbcXxLvKGawL8FJdydvyKixN3ELkg/exec";
 
-    if(!rawEditorData || rawEditorData.trim() === "" || rawEditorData === "<p>Start typing your lesson notes here, and drag or paste your images directly!</p>") {
-        alert("Please enter some lesson content before uploading!");
-        return;
-    }
-
-    saveStatus.innerText = "⏳ Generating unique teacher avatar...";
-
-    // 1. AN ARRAY OF MODERN CARTOON TEACHER AVATARS
-    // The system picks one of these at random for every single lesson!
+    // 1. GENERATE THE AVATAR FIRST (To keep the Duolingo style consistent)
     const teacherAvatars = [
         "https://api.dicebear.com/7.x/bottts/svg?seed=Felix",
         "https://api.dicebear.com/7.x/bottts/svg?seed=Aria",
@@ -1880,28 +1889,94 @@ function submitLessonNote() {
         "https://api.dicebear.com/7.x/bottts/svg?seed=Milo",
         "https://api.dicebear.com/7.x/bottts/svg?seed=Zoe"
     ];
+    const selectedTeacher = teacherAvatars[Math.floor(Math.random() * teacherAvatars.length)];
 
-    // Pick a random number between 0 and 4
-    const randomIndex = Math.floor(Math.random() * teacherAvatars.length);
-    const selectedTeacher = teacherAvatars[randomIndex];
+    // 2. CHUNKING BYPASS (For Word Docs/PDFs with high-res images)
+    if (fileInput && fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        saveStatus.innerText = "⚡ PREPARING PREMIUM DOCUMENT...";
+        btn.disabled = true;
 
-    // 2. THE PREMIUM DUOLINGO HTML STRUCTURE
-    const premiumDuoData = `
-        <div class="duo-premium-card">
-            
-            <img src="${selectedTeacher}" class="duo-character-img" alt="Teacher">
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            const base64Data = e.target.result.split(',')[1];
+            const chunkSize = 500000; 
+            const totalChunks = Math.ceil(base64Data.length / chunkSize);
+            const fileId = "doc_" + Math.random().toString(36).substr(2, 9);
 
-            <div class="duo-bubble">
-                ${rawEditorData}
+            // We create a "Duo-style" button for the student to click
+            const fileDuoStructure = `
+                <div class="duo-premium-card">
+                    <img src="${selectedTeacher}" class="duo-character-img" alt="Teacher">
+                    <div class="duo-bubble">
+                        <p>I've prepared a detailed document for you! Click below to view the full lesson:</p>
+                        <a href="TEMP_URL" target="_blank" style="display:inline-block; background:#22c55e; color:white; padding:10px 20px; border-radius:12px; text-decoration:none; font-weight:bold; margin-top:10px;">
+                           📖 Open ${file.name}
+                        </a>
+                    </div>
+                </div>
+            `;
+
+            for (let i = 0; i < totalChunks; i++) {
+                const chunk = base64Data.slice(i * chunkSize, (i + 1) * chunkSize);
+                saveStatus.innerText = `☁️ UPLOADING (${Math.round((i / totalChunks) * 100)}%)...`;
+
+                const payload = {
+                    action: "upload_chunk",
+                    course: document.getElementById('adminCourseSelect').value,
+                    task: document.getElementById('adminTaskNum').value,
+                    title: document.getElementById('adminTitle').value,
+                    fileId: fileId,
+                    chunk: chunk,
+                    chunkIndex: i,
+                    totalChunks: totalChunks,
+                    fileName: file.name,
+                    mimeType: file.type,
+                    duoStructure: fileDuoStructure // We send the style to Google
+                };
+
+                await fetch(scriptURL, { method: "POST", body: JSON.stringify(payload) });
+                
+                if (i === totalChunks - 1) {
+                    alert("Success! Your Premium Document Lesson is live.");
+                    location.reload();
+                }
+            }
+        };
+        reader.readAsDataURL(file);
+    } 
+    // 3. TEXT FALLBACK (For typed notes)
+    else {
+        let rawEditorData = window.myEditor.getData();
+        if(!rawEditorData || rawEditorData.trim() === "" || rawEditorData.includes("Start typing")) {
+            alert("Please enter notes or attach a file!");
+            return;
+        }
+
+        const premiumDuoData = `
+            <div class="duo-premium-card">
+                <img src="${selectedTeacher}" class="duo-character-img" alt="Teacher">
+                <div class="duo-bubble">${rawEditorData}</div>
             </div>
+        `;
 
-        </div>
-    `;
-
-    saveStatus.innerText = "☁️ Saving to dashboard portals...";
-    
-    // Send the high-end structure to Google Sheets
-    saveTaskToGoogle(premiumDuoData); 
+        saveStatus.innerText = "☁️ Saving text lesson...";
+        
+        fetch(scriptURL, { 
+            method: 'POST', 
+            mode: 'no-cors', 
+            body: JSON.stringify({
+                action: "save_lesson",
+                course: document.getElementById('adminCourseSelect').value,
+                task: document.getElementById('adminTaskNum').value,
+                title: document.getElementById('adminTitle').value,
+                body: premiumDuoData
+            }) 
+        }).then(() => {
+            alert("Text Lesson Uploaded Successfully!");
+            location.reload();
+        });
+    }
 }
 </script>
         
