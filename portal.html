@@ -1841,20 +1841,22 @@ function initWordProcessor() {
     <input type="text" id="adminTitle" placeholder="Task Title" class="admin-input">
 
     <div style="display: flex; gap: 10px; margin-bottom: 20px; justify-content: center;">
-        <button onclick="switchMode('type')" style="background:#334155; color:white; padding:8px 15px; border-radius:5px; border:none; cursor:pointer;">⌨️ Type Note</button>
-        <button onclick="switchMode('upload')" style="background:#334155; color:white; padding:8px 15px; border-radius:5px; border:none; cursor:pointer;">📎 Upload File</button>
+        <button onclick="switchMode('type')" class="modern-btn" style="background:#334155; padding: 8px 15px;">⌨️ Type Note</button>
+        <button onclick="switchMode('upload')" class="modern-btn" style="background:#334155; padding: 8px 15px;">📎 Upload File</button>
     </div>
 
     <div id="typeModeSection">
-        <div id="toolbar-container" style="border: 1px solid #ccc; background: #fafafa;"></div>
-        <div style="display: flex; gap: 10px; margin-top: 10px;">
-            <div style="flex: 2; border: 1px solid #ccc; background: white; min-height: 500px; padding: 40px; color: #333;" id="wordEditor">
-                <h2>Humble CyberS Tech</h2>
-                <p>Start typing your lesson notes here...</p>
-            </div>
-            <div style="flex: 1; background: #121212; border-radius: 20px; padding: 15px; border: 8px solid #333; height: 600px; overflow-y: auto;">
-                <div style="color: gray; font-size: 0.7rem; text-align: center; margin-bottom: 10px;">📱 STUDENT LIVE PREVIEW</div>
-                <div id="livePreview" class="lesson-content" style="color: white;"></div>
+        <div class="word-processor-container">
+            <div id="toolbar-container" style="border: 1px solid #ccc; background: #fafafa;"></div>
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <div style="flex: 2; border: 1px solid #ccc; background: white; min-height: 500px; padding: 40px; color: #333;" id="wordEditor">
+                    <h2>Humble CyberS Tech</h2>
+                    <p>Start typing your lesson notes here...</p>
+                </div>
+                <div style="flex: 1; background: #121212; border-radius: 20px; padding: 15px; border: 8px solid #333; height: 600px; overflow-y: auto;">
+                    <div style="color: gray; font-size: 0.7rem; text-align: center; margin-bottom: 10px;">📱 STUDENT LIVE PREVIEW</div>
+                    <div id="livePreview" class="lesson-content" style="color: white;"></div>
+                </div>
             </div>
         </div>
         <button type="button" class="modern-btn" onclick="submitTypedNote()" style="width:100%; margin-top:20px; background:#22c55e;">🚀 Post Typed Lesson</button>
@@ -1862,20 +1864,25 @@ function initWordProcessor() {
 
     <div id="uploadModeSection" style="display:none; background:#1e293b; padding:40px; border-radius:15px; text-align:center; border: 2px dashed #22c55e;">
         <h4 style="color:#22c55e;">Upload Premium Document</h4>
-        <p style="color:#94a3b8;">Choose a Word, PDF, or high-res Image to convert into a Duo-style lesson.</p>
         <input type="file" id="lessonFile" accept=".pdf,.doc,.docx,image/*" style="margin:20px 0; color:white;">
-        <br>
         <button type="button" class="modern-btn" onclick="submitFileNote()" style="background:#22c55e; padding:15px 40px;">🚀 Convert & Upload File</button>
     </div>
 
-    <div id="saveStatus" style="margin-top: 10px; font-weight: bold; color: #f39c12;">☁️ Waiting for input...</div>
+    <div id="saveStatus" style="margin-top: 10px; font-weight: bold; color: #f39c12;">☁️ Waiting...</div>
+
+    <div id="mascotContainer" style="position: fixed; bottom: 20px; right: -100px; z-index: 1000; display: flex; align-items: center; transition: 0.5s ease;">
+        <div style="background: white; border: 2px solid #22c55e; padding: 10px; border-radius: 15px; margin-right: -10px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); font-size: 0.8rem; color: black; font-weight: bold; max-width: 150px;">
+            <span id="mascotText">Hello! Let's start!</span>
+        </div>
+        <img id="peekingMascot" src="" style="width: 80px; height: 80px; transform: rotate(-10deg);">
+    </div>
 </div> 
 <script>
+// 1. THE ENGINE (Initializes everything when page loads)
 document.addEventListener("DOMContentLoaded", function() {
     if (typeof DecoupledEditor !== 'undefined') {
         DecoupledEditor
             .create(document.querySelector('#wordEditor'), {
-                // Keep your Magic Image Plugin
                 extraPlugins: [ function( editor ) {
                     editor.plugins.get( 'FileRepository' ).createUploadAdapter = ( loader ) => {
                         return {
@@ -1895,36 +1902,58 @@ document.addEventListener("DOMContentLoaded", function() {
             .then(editor => {
                 const toolbarContainer = document.querySelector('#toolbar-container');
                 toolbarContainer.appendChild(editor.ui.view.toolbar.element);
-                
                 window.myEditor = editor; 
 
-                // --- PREMIUM DUOLINGO LIVE PREVIEW LOGIC ---
+                // This is where we call your NEW preview logic
                 editor.model.document.on('change:data', () => {
-                    const data = editor.getData();
-                    const previewContainer = document.getElementById('livePreview');
-                    
-                    // Fixed robot for preview
-                    const previewTeacher = "https://api.dicebear.com/7.x/bottts/svg?seed=Felix";
-
-                    if (data && data.trim() !== "" && !data.includes("Start typing")) {
-                        previewContainer.innerHTML = `
-                            <div class="duo-premium-card">
-                                <img src="${previewTeacher}" class="duo-character-img" alt="Teacher">
-                                <div class="duo-bubble">
-                                    ${data}
-                                </div>
-                            </div>
-                        `;
-                    } else {
-                        previewContainer.innerHTML = "<p style='text-align:center; color:gray; padding-top:20px;'>📱 Type a note or switch to 'Upload File' mode...</p>";
-                    }
+                    updateLivePreview(editor.getData());
                 });
             })
-            .catch(error => {
-                console.error(error);
-            });
+            .catch(error => { console.error(error); });
     }
 });
+
+// 2. THE TOOLS (Place these below the engine)
+
+function switchMode(mode) {
+    document.getElementById('typeModeSection').style.display = (mode === 'type') ? 'block' : 'none';
+    document.getElementById('uploadModeSection').style.display = (mode === 'upload') ? 'block' : 'none';
+}
+
+function updateLivePreview(data) {
+    const preview = document.getElementById('livePreview');
+    const taskNum = document.getElementById('adminTaskNum').value || "?";
+    const robotSeed = "Felix"; 
+    
+    if (data && data.trim() !== "" && !data.includes("Start typing")) {
+        preview.innerHTML = `
+            <div class="duo-premium-card">
+                <img src="https://api.dicebear.com/7.x/bottts/svg?seed=${robotSeed}" class="duo-character-img">
+                <div class="duo-bubble">${data}</div>
+            </div>
+        `;
+        
+        // This triggers the mascot to peek from the wall!
+        showPeekingMascot(taskNum);
+    }
+}
+
+function showPeekingMascot(taskNum) {
+    const mascot = document.getElementById('peekingMascot');
+    const container = document.getElementById('mascotContainer');
+    const text = document.getElementById('mascotText');
+    
+    // Check if mascot is already out to avoid flickering
+    if (container.style.right === "10px") return;
+
+    const randomSeed = Math.floor(Math.random() * 5000);
+    mascot.src = `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${randomSeed}`;
+    
+    // Updated with the Mr. Humble greeting you wanted
+    text.innerHTML = `Welcome to this lesson! I am going to take you through this chapter. <strong>I am Mr. Humble.</strong> (Task #${taskNum})`;
+    
+    container.style.right = "10px"; 
+}
 
 // This is the function that triggers when you click the button!
 // --- THIS FUNCTION NOW AUTOMATICALLY "WRAPS" YOUR TEXT IN GAMING LAYOUTS ---
