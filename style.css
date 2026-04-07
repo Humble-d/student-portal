@@ -1356,3 +1356,65 @@ iframe { width: 100%; height: 100%; border: none; }
     border: 1px solid #ddd;
     box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
+
+
+
+
+
+
+
+#livePreview {
+    background-color: #121212; /* Matches the phone screen in your screenshot */
+    padding: 10px;
+    min-height: 100%;
+}
+
+
+
+
+
+/* --- ADMIN LIVE PREVIEW (DUOLINGO STYLE) --- */
+#livePreview .duo-premium-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    margin-top: 20px;
+    animation: fadeInUp 0.5s ease;
+}
+
+#livePreview .duo-character-img {
+    width: 60px;
+    height: 60px;
+    background: #334155;
+    border-radius: 50%;
+    border: 2px solid #22c55e;
+}
+
+#livePreview .duo-bubble {
+    background: white;
+    color: #1e293b;
+    padding: 15px;
+    border-radius: 18px;
+    border-bottom-left-radius: 2px;
+    position: relative;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    max-width: 80%;
+}
+
+/* Ensure the animation exists or the card won't show smoothly */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+
+
+
+
+
+
+
+
+
