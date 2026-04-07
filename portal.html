@@ -1760,16 +1760,57 @@ function initWordProcessor() {
         .then(editor => {
             const toolbarContainer = document.querySelector('#toolbar-container');
             toolbarContainer.appendChild(editor.ui.view.toolbar.element);
-            editorInstance = editor;
+            
+            // Save the editor instance globally so our upload button can find it
+            window.myEditor = editor; 
 
-            // Live Sync Logic
+            // --- UPGRADED LIVE SYNC LOGIC ---
             editor.model.document.on('change:data', () => {
                 const data = editor.getData();
-                document.getElementById('livePreview').innerHTML = data;
-                autoSave(data); // This handles the "Save at once" part
+                const previewContainer = document.getElementById('livePreview');
+                
+                // 1. Pick a fixed teacher avatar for the preview (Felix)
+                const previewTeacher = "https://api.dicebear.com/7.x/bottts/svg?seed=Felix";
+
+                // 2. Wrap your data in the Premium Duolingo HTML structure
+                if (data && data.trim() !== "" && !data.includes("Start typing")) {
+                    previewContainer.innerHTML = `
+                        <div class="duo-premium-card" style="display: flex; align-items: flex-start; gap: 15px; margin-top: 10px;">
+                            <img src="${previewTeacher}" style="width: 50px; height: 50px; border-radius: 50%; border: 2px solid #22c55e;" alt="Teacher">
+                            <div class="duo-bubble" style="background: white; color: #1e293b; padding: 15px; border-radius: 18px; border-bottom-left-radius: 2px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); font-size: 0.9rem; max-width: 80%;">
+                                ${data}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    previewContainer.innerHTML = "<p style='text-align:center; color:gray; font-size:0.8rem;'>📱 Waiting for you to type your lesson...</p>";
+                }
+
+                // 3. Keep your auto-save running in the background
+                autoSave(data); 
             });
+        })
+        .catch(error => {
+            console.error(error);
         });
 }
+    document.getElementById('lessonFile').addEventListener('change', function() {
+    const previewContainer = document.getElementById('livePreview');
+    if (this.files && this.files[0]) {
+        const fileName = this.files[0].name;
+        previewContainer.innerHTML = `
+            <div class="duo-premium-card" style="display: flex; align-items: flex-start; gap: 15px; margin-top: 10px; opacity: 0.8;">
+                <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Felix" style="width: 50px; height: 50px; border-radius: 50%; border: 2px solid #22c55e;" alt="Teacher">
+                <div class="duo-bubble" style="background: #f0fdf4; color: #1e293b; padding: 15px; border-radius: 18px; border-bottom-left-radius: 2px; border: 1px dashed #22c55e;">
+                    <p><strong>Lesson Attached:</strong> ${fileName}</p>
+                    <p style="font-size: 0.7rem;">Click "Upload" to finalize this document lesson.</p>
+                </div>
+            </div>
+        `;
+    }
+});
+
+    
 
 
 
