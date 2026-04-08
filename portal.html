@@ -32,6 +32,14 @@
             <h1 id="adminTrigger" style="cursor:pointer; user-select:none;">
     Humble CyberS Tech
 </h1>
+            <div class="student-profile-section" style="padding: 20px; text-align: center; border-bottom: 1px solid #333;">
+    <div id="profilePhotoContainer" onclick="document.getElementById('photoUpload').click()" style="cursor: pointer;">
+        <img id="displayPhoto" src="https://via.placeholder.com/80" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid #22c55e; object-fit: cover;">
+        <input type="file" id="photoUpload" style="display:none;" accept="image/*" onchange="updateProfilePhoto(event)">
+    </div>
+    <h3 id="displayStudentName" style="color: white; margin-top: 10px; font-size: 1rem;">Student Name</h3>
+    <button onclick="editProfileName()" style="background: none; border: none; color: #22c55e; font-size: 0.7rem; cursor: pointer;">✎ Edit Name</button>
+</div>
 
         </div>
         <ul>
@@ -543,23 +551,64 @@ function checkSubscription() {
     }
 }
 
+// --- COMBINED STARTUP LOGIC ---
 window.onload = function() {
-    // 1. Check for student progress
+    // 1. Profile Loading (Name and Photo)
+    const savedName = localStorage.getItem('hct_user_name') || "Humble Student";
+    const savedPhoto = localStorage.getItem('hct_user_photo');
+    
+    // Check if the elements exist before trying to set them
+    if(document.getElementById('displayStudentName')) {
+        document.getElementById('displayStudentName').innerText = savedName;
+    }
+    if(savedPhoto && document.getElementById('displayPhoto')) {
+        document.getElementById('displayPhoto').src = savedPhoto;
+    }
+
+    // 2. Student Progress & Lockout Logic
     if (localStorage.getItem("hct_student_progress") === null) {
         localStorage.setItem("hct_student_progress", "0");
     }
     
-    // 2. Read the global completed counter (for the 8 task limit)
     let completedCount = parseInt(localStorage.getItem('completedLessonsCount')) || 0;
     
-    // 3. Trigger lockout screen if they hit 8 tasks (4 lessons + 4 exercises)
     if (completedCount >= 8) {
-        document.getElementById('accessGate').style.display = 'flex';
-        document.getElementById('classroomOverlay').style.display = 'none';
+        const accessGate = document.getElementById('accessGate');
+        const classroomOverlay = document.getElementById('classroomOverlay');
+        if(accessGate) accessGate.style.display = 'flex';
+        if(classroomOverlay) classroomOverlay.style.display = 'none';
     }
     
-    renderTasks();
+    // 3. Render the Task Map
+    if (typeof renderTasks === "function") {
+        renderTasks();
+    }
 };
+
+// --- PROFILE HELPER FUNCTIONS ---
+function editProfileName() {
+    const newName = prompt("Enter your display name:");
+    if(newName) {
+        localStorage.setItem('hct_user_name', newName);
+        if(document.getElementById('displayStudentName')) {
+            document.getElementById('displayStudentName').innerText = newName;
+        }
+    }
+}
+
+function updateProfilePhoto(event) {
+    const reader = new FileReader();
+    reader.onload = function() {
+        const base64 = reader.result;
+        localStorage.setItem('hct_user_photo', base64);
+        if(document.getElementById('displayPhoto')) {
+            document.getElementById('displayPhoto').src = base64;
+        }
+    };
+    if(event.target.files[0]) {
+        reader.readAsDataURL(event.target.files[0]);
+    }
+}
 
 // FUNCTION TO REQUEST THE CODE BY NAME
 async function requestRenewalCode() {
@@ -2053,21 +2102,32 @@ async function submitLessonNote() {
     const saveStatus = document.getElementById('saveStatus');
     const scriptURL = "https://script.google.com/macros/s/AKfycby5CQVpB-T7WsHo6pWTXCl1tsis-DCVd-gGA7B08UbcXxLvKGawL8FJdydvyKixN3ELkg/exec";
 
-    // 1. GENERATE THE AVATAR FIRST (To keep the Duolingo style consistent)
-    const teacherAvatars = [
-        "https://api.dicebear.com/7.x/bottts/svg?seed=Felix",
-        "https://api.dicebear.com/7.x/bottts/svg?seed=Aria",
-        "https://api.dicebear.com/7.x/bottts/svg?seed=Leo",
-        "https://api.dicebear.com/7.x/bottts/svg?seed=Milo",
-        "https://api.dicebear.com/7.x/bottts/svg?seed=Zoe"
+    // PREMIUM CHARACTER ROTATION: Using your uploaded Duo characters
+    // REPLACE THE LINKS BELOW WITH YOUR ACTUAL HOSTED IMAGE LINKS
+    const characterImages = [
+        "LINK_TO_DUO_1", // Green Duo
+        "LINK_TO_DUO_2", // Duo with Suit
+        "LINK_TO_DUO_3", // Owl with glasses
+        "LINK_TO_DUO_5", // Angry Duo (for hard tasks?)
+        "LINK_TO_DUO_6", // Happy Duo
+        "LINK_TO_DUO_7"  // Duo with a Cape
     ];
-    const selectedTeacher = teacherAvatars[Math.floor(Math.random() * teacherAvatars.length)];
+    
+    // Pick a character based on the Task Number (so Task 1 always has the same character)
+    const taskNum = parseInt(document.getElementById('adminTaskNum').value) || 1;
+    const selectedDuo = characterImages[taskNum % characterImages.length];
 
-    // 2. CHUNKING BYPASS (For Word Docs/PDFs with high-res images)
+    if (!document.getElementById('adminTitle').value) {
+        alert("Wait! Mr. Humble needs a Title for this lesson.");
+        return;
+    }
+
+    btn.disabled = true;
+
+    // 1. FILE UPLOAD LOGIC
     if (fileInput && fileInput.files.length > 0) {
         const file = fileInput.files[0];
         saveStatus.innerText = "⚡ PREPARING PREMIUM DOCUMENT...";
-        btn.disabled = true;
 
         const reader = new FileReader();
         reader.onload = async function(e) {
@@ -2076,27 +2136,25 @@ async function submitLessonNote() {
             const totalChunks = Math.ceil(base64Data.length / chunkSize);
             const fileId = "doc_" + Math.random().toString(36).substr(2, 9);
 
-            // We create a "Duo-style" button for the student to click
             const fileDuoStructure = `
-                <div class="duo-premium-card">
-                    <img src="${selectedTeacher}" class="duo-character-img" alt="Teacher">
-                    <div class="duo-bubble">
-                        <p>I've prepared a detailed document for you! Click below to view the full lesson:</p>
-                        <a href="TEMP_URL" target="_blank" style="display:inline-block; background:#22c55e; color:white; padding:10px 20px; border-radius:12px; text-decoration:none; font-weight:bold; margin-top:10px;">
-                           📖 Open ${file.name}
+                <div class="duo-premium-card" style="display: flex; align-items: center; gap: 20px; background: #fff; padding: 20px; border-radius: 20px; border-bottom: 5px solid #e5e5e5; margin-bottom: 20px;">
+                    <img src="${selectedDuo}" style="width: 80px; height: 80px; border-radius: 15px;" alt="Teacher">
+                    <div class="duo-bubble" style="position: relative; background: #22c55e; color: white; padding: 15px; border-radius: 15px; font-weight: bold;">
+                        <p>I've prepared a special document for this lesson! Open it below to start.</p>
+                        <a href="TEMP_URL" target="_blank" style="display:inline-block; background:white; color:#22c55e; padding:10px 20px; border-radius:12px; text-decoration:none; margin-top:10px;">
+                           📖 READ: ${file.name}
                         </a>
                     </div>
-                </div>
-            `;
+                </div>`;
 
             for (let i = 0; i < totalChunks; i++) {
                 const chunk = base64Data.slice(i * chunkSize, (i + 1) * chunkSize);
                 saveStatus.innerText = `☁️ UPLOADING (${Math.round((i / totalChunks) * 100)}%)...`;
 
-                const payload = {
+                await fetch(scriptURL, { method: "POST", body: JSON.stringify({
                     action: "upload_chunk",
                     course: document.getElementById('adminCourseSelect').value,
-                    task: document.getElementById('adminTaskNum').value,
+                    task: taskNum,
                     title: document.getElementById('adminTitle').value,
                     fileId: fileId,
                     chunk: chunk,
@@ -2104,33 +2162,27 @@ async function submitLessonNote() {
                     totalChunks: totalChunks,
                     fileName: file.name,
                     mimeType: file.type,
-                    duoStructure: fileDuoStructure // We send the style to Google
-                };
-
-                await fetch(scriptURL, { method: "POST", body: JSON.stringify(payload) });
+                    duoStructure: fileDuoStructure 
+                })});
                 
                 if (i === totalChunks - 1) {
-                    alert("Success! Your Premium Document Lesson is live.");
+                    alert("Success! Premium Lesson is live.");
                     location.reload();
                 }
             }
         };
         reader.readAsDataURL(file);
     } 
-    // 3. TEXT FALLBACK (For typed notes)
+    // 2. TEXT LESSON LOGIC
     else {
         let rawEditorData = window.myEditor.getData();
-        if(!rawEditorData || rawEditorData.trim() === "" || rawEditorData.includes("Start typing")) {
-            alert("Please enter notes or attach a file!");
-            return;
-        }
-
         const premiumDuoData = `
-            <div class="duo-premium-card">
-                <img src="${selectedTeacher}" class="duo-character-img" alt="Teacher">
-                <div class="duo-bubble">${rawEditorData}</div>
-            </div>
-        `;
+            <div class="duo-premium-card" style="display: flex; align-items: start; gap: 20px; margin-bottom: 30px;">
+                <img src="${selectedDuo}" style="width: 70px; height: 70px;" alt="Coach">
+                <div style="background: white; border: 2px solid #e5e5e5; padding: 20px; border-radius: 20px; color: #333; flex: 1; box-shadow: 0 4px 0 #e5e5e5;">
+                    ${rawEditorData}
+                </div>
+            </div>`;
 
         saveStatus.innerText = "☁️ Saving text lesson...";
         
@@ -2140,7 +2192,7 @@ async function submitLessonNote() {
             body: JSON.stringify({
                 action: "save_lesson",
                 course: document.getElementById('adminCourseSelect').value,
-                task: document.getElementById('adminTaskNum').value,
+                task: taskNum,
                 title: document.getElementById('adminTitle').value,
                 body: premiumDuoData
             }) 
