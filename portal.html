@@ -1833,7 +1833,36 @@ function initWordProcessor() {
 });
 
     
+function loadTaskBar(courseName) {
+    const taskContainer = document.getElementById('taskBar');
+    if (!taskContainer) return; // Safety check
+    
+    taskContainer.innerHTML = ""; // Clear old icons
+    taskContainer.className = "task-bar-container"; // Apply the grid style
 
+    for (let i = 1; i <= 50; i++) {
+        const isExercise = i % 2 === 0;
+        
+        // Logic: Task 1 is always unlocked. Others depend on localStorage.
+        let defaultStatus = (i === 1) ? "unlocked" : "locked";
+        const taskStatus = localStorage.getItem(`${courseName}_task_${i}`) || defaultStatus;
+        
+        const taskIcon = document.createElement('div');
+        taskIcon.className = `task-node ${taskStatus}`;
+        
+        // Icons: Book for lessons, Pencil for exercises
+        taskIcon.innerHTML = isExercise ? `📝<br>${i}` : `📖<br>${i}`;
+        
+        // Only allow clicking if it's not locked
+        if (taskStatus !== "locked") {
+            taskIcon.onclick = () => loadSpecificTask(courseName, i);
+        } else {
+            taskIcon.title = "Complete previous tasks to unlock!";
+        }
+        
+        taskContainer.appendChild(taskIcon);
+    }
+}
 
 
 
@@ -2121,6 +2150,79 @@ async function submitLessonNote() {
         });
     }
 }
+
+
+
+let currentParagraphIndex = 0;
+let lessonParagraphs = [];
+
+// This function starts the classroom experience
+function startInteractiveLesson(rawNote) {
+    // 1. Break note into paragraphs
+    lessonParagraphs = rawNote.split('</p>').filter(p => p.trim() !== "");
+    currentParagraphIndex = 0;
+    
+    // 2. Show Classroom
+    document.getElementById('classroomStage').style.display = 'block';
+    
+    // 3. Teacher Walks In
+    const teacher = document.getElementById('specialTeacher');
+    teacher.style.right = "-300px";
+    setTimeout(() => {
+        teacher.style.right = "5%";
+        speak("Hello! I am your lead instructor. Let's dive into this chapter together.");
+        writeOnBoard("Welcome to Humble Cyber Security Training Institute. Today's Lesson is starting...");
+    }, 500);
+}
+
+function writeOnBoard(text) {
+    document.getElementById('boardContent').innerHTML = text;
+}
+
+function speak(text) {
+    const bubble = document.getElementById('teacherBubble');
+    const speech = document.getElementById('teacherSpeech');
+    speech.innerText = text;
+    bubble.style.display = 'block';
+}
+
+function nextParagraph() {
+    if (currentParagraphIndex < lessonParagraphs.length) {
+        let content = lessonParagraphs[currentParagraphIndex];
+        writeOnBoard(content);
+        
+        // After every 2 paragraphs, the teacher asks a check-in question
+        if (currentParagraphIndex % 2 === 0 && currentParagraphIndex !== 0) {
+            speak("Does that make sense so far? If you have a question, type it below!");
+        } else {
+            speak("Continuing with the next part...");
+        }
+        
+        currentParagraphIndex++;
+    } else {
+        speak("We have reached the end of this note. Ready for your Exercise Task?");
+        document.getElementById('nextBtn').innerText = "START EXERCISE";
+    }
+}
+
+// PREMIUM FEATURE: Search/Ask Question
+async function askTeacher() {
+    const query = document.getElementById('studentQuestion').value;
+    if(!query) return;
+    
+    speak("Give me a second to look that up for you...");
+    
+    // This is where you connect to your AI or Search API
+    // For now, it simulates a teacher finding an answer
+    setTimeout(() => {
+        speak(`That's a great question about ${query}. In Cyber Security, we define this as... [Search Results]`);
+        document.getElementById('studentQuestion').value = "";
+    }, 2000);
+}
+
+
+
+    
 </script>
         
 </div>
