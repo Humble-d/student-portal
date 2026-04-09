@@ -571,13 +571,12 @@ window.onload = function() {
     }
     
     let completedCount = parseInt(localStorage.getItem('completedLessonsCount')) || 0;
-    
-    if (completedCount >= 8) {
-        const accessGate = document.getElementById('accessGate');
-        const classroomOverlay = document.getElementById('classroomOverlay');
-        if(accessGate) accessGate.style.display = 'flex';
-        if(classroomOverlay) classroomOverlay.style.display = 'none';
-    }
+let accessStatus = localStorage.getItem('hct_access_status') || 'trial'; // Default to trial
+
+if (completedCount >= 8 && accessStatus === 'trial') {
+    if(accessGate) accessGate.style.display = 'flex';
+    if(classroomOverlay) classroomOverlay.style.display = 'none';
+}
     
     // 3. Render the Task Map
     if (typeof renderTasks === "function") {
