@@ -709,69 +709,48 @@ function updateProgress(courseProgress) {
 }
 
 // --- TASK MODAL LOGIC ---
-function openTask(num, taskType) {
-    document.getElementById('taskModal').style.display = 'flex';
+async function openTask(num) {
+    const modal = document.getElementById('taskModal');
     const body = document.getElementById('modalTaskBody');
-    const course = document.getElementById('classTitle').innerText;
+    const title = document.getElementById('modalTaskTitle');
     const completeBtn = document.getElementById('completeBtn');
     
-    body.innerHTML = "<p>Loading lesson data...</p>";
+    // Get the current course name (make sure it matches your Sheet tab name)
+    const course = document.getElementById('classTitle').innerText.toLowerCase().trim();
     
-    // Setup standard button state
-    completeBtn.disabled = false;
-    completeBtn.innerText = "Complete & Unlock Next";
-    completeBtn.style.background = "#f39c12";
-    completeBtn.style.cursor = "pointer";
+    modal.style.display = 'flex';
+    body.innerHTML = "<div style='text-align:center; padding:20px;'><p>⚡ Mr. Humble is fetching your lesson...</p></div>";
+    title.innerText = `Task #${num}`;
 
-    fetch(`${scriptURL}?action=getTask&course=${course}&task=${num}`)
-        .then(res => res.json())
-        .then(data => {
-            document.getElementById('modalTaskTitle').innerText = `Task ${num}: ${data.Title}`;
-            const imageHTML = data.Image_URL ? `<img src="${data.Image_URL}" style="width:100%; border-radius:8px; margin-bottom:10px;">` : '';
-            
-            if (num % 2 === 0) { // Exercise
-                body.innerHTML = `
-                    <div class="exercise-box">
-                        <p style="color:#aaa; margin-bottom:10px;">Practice your task below. Once you start working, click complete to provide proof.</p>
-                        <iframe src="${data.Correct_Answer}" width="100%" height="500px" frameborder="0"></iframe>
-                    </div>`;
-            } else { // Lesson
-                body.innerHTML = `
-                    <div class="lesson-content">
-                        ${imageHTML}
-                        <p>${data.Body_Content}</p>
-                        ${data.Video_ID ? `<iframe src="https://www.youtube.com/embed/${data.Video_ID}" width="100%" height="300px" frameborder="0"></iframe>` : ''}
-                    </div>`;
-            }
-        }).catch(err => {
-            body.innerHTML = "<p>Error loading task. Make sure the task is created in Admin.</p>";
-        });
+    try {
+        // Fetch from the Master Script using the correct 'getLesson' action
+        const response = await fetch(`${scriptURL}?action=getLesson&course=${course}&task=${num}`);
+        const data = await response.json();
 
-    completeBtn.onclick = () => {
-        const course = document.getElementById('classTitle').innerText;
-        const isExercise = num % 2 === 0;
-
-        if (isExercise) {
-            const studentProof = prompt("Please enter the result or a summary of your exercise to prove completion:");
-            
-            if (!studentProof || studentProof.trim().length < 10) {
-                alert("Please complete the exercise and provide a short summary of your work first!");
-                return; 
-            }
+        if (data && data.body) {
+            title.innerText = data.title || `Task #${num}`;
+            // This pulls the DUO character and the lesson content perfectly
+            body.innerHTML = `<div class="premium-lesson-wrapper">${data.body}</div>`;
+        } else {
+            body.innerHTML = "<div style='text-align:center;'><p>🚀 No lesson content found. Mr. Humble is still drafting this task!</p></div>";
         }
+    } catch (err) {
+        body.innerHTML = "<p>⚠️ Connection Error. Please check your internet or Script Deployment URL.</p>";
+    }
 
-        // Save Course Specific Progress
-        localStorage.setItem(`${course}_progress`, num);
-        
-        // Advance global count for lockout
-        let completedCount = localStorage.getItem('completedLessonsCount') || 0;
-        completedCount = parseInt(completedCount) + 1;
-        localStorage.setItem('completedLessonsCount', completedCount);
-        
+    // UPDATE THE COMPLETE BUTTON LOGIC
+    completeBtn.onclick = () => {
+        // Use the new naming style to prevent accidental lockouts
+        localStorage.setItem(`hct_task_done_${course}_${num}`, "true");
+
         closeTask();
         renderTasks();
 
-        if (completedCount >= 8) {
+        // Check for lockout
+        let keys = Object.keys(localStorage);
+        let completedCount = keys.filter(key => key.startsWith('hct_task_done_')).length;
+
+        if (completedCount >= 8 && localStorage.getItem('hct_access_status') !== 'unlocked') {
             document.getElementById('accessGate').style.display = 'flex';
             document.getElementById('classroomOverlay').style.display = 'none';
         }
@@ -1053,35 +1032,49 @@ function showProgressReport() {
 
 // Load saved progress when the page opens
 window.onload = function() {
-    const savedProgress = localStorage.getItem("hct_student_progress");
-    if (savedProgress) {
-        completedTasks = parseInt(savedProgress);
+    // 1. Load Profile
+    const savedName = localStorage.getItem('hct_user_name') || "Humble Student";
+    if(document.getElementById('displayStudentName')) {
+        document.getElementById('displayStudentName').innerText = savedName;
     }
+
+    // 2. SAFE LOCKOUT CHECK (Counts unique tasks completed)
+    let keys = Object.keys(localStorage);
+    let completedCount = keys.filter(key => key.startsWith('hct_task_done_')).length;
+
+    console.log("Total unique tasks finished:", completedCount);
+
+    // If they hit 8 and haven't paid, lock them out
+    if (completedCount >= 8 && localStorage.getItem('hct_access_status') !== 'unlocked') {
+        const accessGate = document.getElementById('accessGate');
+        const classroomOverlay = document.getElementById('classroomOverlay');
+        if(accessGate) accessGate.style.display = 'flex';
+        if(classroomOverlay) classroomOverlay.style.display = 'none';
+    }
+    
+    if (typeof renderTasks === "function") renderTasks();
 };
 
+// This function runs when they click "Complete" inside a task
 function finishTask(num) {
-    completedTasks = num;
-    localStorage.setItem("hct_student_progress", completedTasks); // Saves to device
+    const currentCourse = document.getElementById('classTitle').innerText;
+    
+    // SAVE: Create a unique key for THIS specific task in THIS specific course
+    // This ensures we don't double-count the same task if they refresh
+    localStorage.setItem(`hct_task_done_${currentCourse}_${num}`, "true");
+
     closeTask();
     renderTasks();
-    
-    // If they just finished task 8 (4 lessons + 4 exercises), lock the portal
-    if (completedTasks >= 8) {
+
+    // Re-check count for immediate lockout
+    let keys = Object.keys(localStorage);
+    let completedCount = keys.filter(key => key.startsWith('hct_task_done_')).length;
+
+    if (completedCount >= 8 && localStorage.getItem('hct_access_status') !== 'unlocked') {
         document.getElementById('accessGate').style.display = 'flex';
         document.getElementById('classroomOverlay').style.display = 'none';
     }
 }
-
-document.getElementById('completeBtn').onclick = () => {
-    const currentCourse = document.getElementById('classTitle').innerText;
-    
-    // Save to subject-specific storage
-    localStorage.setItem(`${currentCourse}_progress`, num);
-    
-    completedTasks = num; // Update local variable for the current view
-    closeTask();
-    renderTasks();
-};
 
 
 // --- VIRTUAL LAB ENGINE ---
