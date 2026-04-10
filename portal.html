@@ -734,38 +734,33 @@ async function openTask(num) {
     const title = document.getElementById('modalTaskTitle');
     const completeBtn = document.getElementById('completeBtn');
     
-    // Get the current course name (make sure it matches your Sheet tab name)
-    const course = document.getElementById('classTitle').innerText.toLowerCase().trim();
-    
+    // SAFE COURSE NAME: This ensures we match your Sheet tab perfectly
+    let course = document.getElementById('classTitle').innerText.trim();
+    if (course.includes("Cyber")) course = "cyber"; // Hardcoded for safety
+
     modal.style.display = 'flex';
     body.innerHTML = "<div style='text-align:center; padding:20px;'><p>⚡ Mr. Humble is fetching your lesson...</p></div>";
-    title.innerText = `Task #${num}`;
 
     try {
-        // Fetch from the Master Script using the correct 'getLesson' action
         const response = await fetch(`${scriptURL}?action=getLesson&course=${course}&task=${num}`);
         const data = await response.json();
 
         if (data && data.body) {
             title.innerText = data.title || `Task #${num}`;
-            // This pulls the DUO character and the lesson content perfectly
+            // This is where your Automated Robot/Duo character appears!
             body.innerHTML = `<div class="premium-lesson-wrapper">${data.body}</div>`;
         } else {
-            body.innerHTML = "<div style='text-align:center;'><p>🚀 No lesson content found. Mr. Humble is still drafting this task!</p></div>";
+            body.innerHTML = "<div style='text-align:center;'><p>🚀 No lesson found. Director Emmanuel is still preparing this task.</p></div>";
         }
     } catch (err) {
-        body.innerHTML = "<p>⚠️ Connection Error. Please check your internet or Script Deployment URL.</p>";
+        body.innerHTML = "<p>⚠️ Connection Error. Ensure your Google Script is Deployed as 'Anyone'.</p>";
     }
 
-    // UPDATE THE COMPLETE BUTTON LOGIC
     completeBtn.onclick = () => {
-        // Use the new naming style to prevent accidental lockouts
         localStorage.setItem(`hct_task_done_${course}_${num}`, "true");
-
         closeTask();
         renderTasks();
 
-        // Check for lockout
         let keys = Object.keys(localStorage);
         let completedCount = keys.filter(key => key.startsWith('hct_task_done_')).length;
 
