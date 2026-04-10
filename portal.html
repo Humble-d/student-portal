@@ -853,83 +853,23 @@ tinymce.init({
 
 // 2. THIS ADDS THE MISSING SUBMIT BUTTON TO YOUR INTERFACE
 // We will inject the button dynamically right below the word processor
-async function uploadLessonFile() {
-  const fileInput = document.getElementById('lessonFile');
-  const btn = document.getElementById('uploadBtn');
-  
-  if (!fileInput || !fileInput.files.length) {
-    alert("Please select a file first!");
-    return;
-  }
-  
-  const file = fileInput.files[0];
-  
-  // Allow Images and PDFs
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
-  if (!allowedTypes.includes(file.type)) {
-    alert("Please upload only Images (JPEG/PNG) or PDF files!");
-    return;
-  }
+// --- GLOBAL CONFIGURATION ---
+const scriptURL = "https://script.google.com/macros/s/AKfycby5CQVpB-T7WsHo6pWTXCl1tsis-DCVd-gGA7B08UbcXxLvKGawL8FJdydvyKixN3ELkg/exec";
 
-  btn.innerText = "PROCESSING...";
-  btn.disabled = true;
-
-  const reader = new FileReader();
-  
-  reader.onload = async function(e) {
-    const base64Data = e.target.result.split(',')[1];
-    const chunkSize = 500000; // 500KB Chunks
-    const totalChunks = Math.ceil(base64Data.length / chunkSize);
-    const fileId = "file_" + Math.random().toString(36).substr(2, 9);
-
-    for (let i = 0; i < totalChunks; i++) {
-      const start = i * chunkSize;
-      const end = Math.min(start + chunkSize, base64Data.length);
-      const chunk = base64Data.slice(start, end);
-      
-      btn.innerText = `UPLOADING (${Math.round((i / totalChunks) * 100)}%)...`;
-
-      const payload = {
-        action: "upload_chunk",
-        fileId: fileId,
-        chunk: chunk,
-        chunkIndex: i,
-        totalChunks: totalChunks,
-        fileName: file.name,
-        mimeType: file.type
-      };
-
-      try {
-        const response = await fetch("https://script.google.com/macros/s/AKfycby5CQVpB-T7WsHo6pWTXCl1tsis-DCVd-gGA7B08UbcXxLvKGawL8FJdydvyKixN3ELkg/exec", {
-          method: "POST",
-          body: JSON.stringify(payload)
-        });
-        
-        if (i === totalChunks - 1) {
-          alert("Success! Your heavy file has been uploaded directly.");
-          btn.innerText = "🚀 Upload Lesson to Portals";
-          btn.disabled = false;
-          location.reload(); 
-        }
-      } catch (error) {
-        console.error(error);
-        alert("Upload failed. Try again or check your network.");
-        btn.innerText = "🚀 Upload Lesson to Portals";
-        btn.disabled = false;
-        return;
-      }
-    }
-  };
-  
-  reader.readAsDataURL(file);
-}
-
+// --- 1. CORE UPLOAD LOGIC (Optimized) ---
 async function saveTaskToGoogle() {
     const fileInput = document.getElementById('lessonFile');
     const btn = document.getElementById('uploadBtn') || document.querySelector('.modern-btn');
-    const scriptURL = "https://script.google.com/macros/s/AKfycby5CQVpB-T7WsHo6pWTXCl1tsis-DCVd-gGA7B08UbcXxLvKGawL8FJdydvyKixN3ELkg/exec";
+    const course = document.getElementById('adminCourseSelect').value;
+    const taskNum = document.getElementById('adminTaskNum').value;
+    const title = document.getElementById('adminTitle').value;
 
-    // DECISION: If a file is selected, we use the File-to-Note bypass
+    if (!title || !taskNum) {
+        alert("Please provide a Title and Task Number!");
+        return;
+    }
+
+    // CASE A: If a file is selected (PDF/Image)
     if (fileInput && fileInput.files.length > 0) {
         const file = fileInput.files[0];
         btn.innerText = "⚡ CONVERTING DOC...";
@@ -944,13 +884,13 @@ async function saveTaskToGoogle() {
 
             for (let i = 0; i < totalChunks; i++) {
                 const chunk = base64Data.slice(i * chunkSize, (i + 1) * chunkSize);
-                btn.innerText = `UPLOADING DOC (${Math.round((i / totalChunks) * 100)}%)...`;
+                btn.innerText = `UPLOADING (${Math.round((i / totalChunks) * 100)}%)...`;
 
                 const payload = {
-                    action: "upload_and_link_lesson", // New action for your Google Script
-                    course: document.getElementById('adminCourseSelect').value,
-                    task: document.getElementById('adminTaskNum').value,
-                    title: document.getElementById('adminTitle').value,
+                    action: "upload_and_link_lesson", 
+                    course: course,
+                    task: taskNum,
+                    title: title,
                     fileId: fileId,
                     chunk: chunk,
                     chunkIndex: i,
@@ -962,144 +902,105 @@ async function saveTaskToGoogle() {
                 await fetch(scriptURL, { method: "POST", body: JSON.stringify(payload) });
                 
                 if (i === totalChunks - 1) {
-                    alert("Success! Document converted to Lesson Note.");
+                    alert("Success! File uploaded as Lesson Note.");
                     location.reload();
                 }
             }
         };
         reader.readAsDataURL(file);
-    } else {
-        // Fallback: Just send the text if no file is selected
-        sendTextOnly(scriptURL, btn);
+    } 
+    // CASE B: Text Content Only (TinyMCE)
+    else {
+        btn.innerText = "SENDING TEXT...";
+        const htmlContent = typeof tinymce !== 'undefined' ? tinymce.get('adminBody').getContent() : "";
+        
+        const payload = {
+            action: "save_lesson",
+            course: course,
+            task: taskNum,
+            title: title,
+            body: htmlContent
+        };
+
+        try {
+            await fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+            alert("Text Lesson Uploaded Successfully!");
+            location.reload();
+        } catch (e) {
+            alert("Error uploading text. Check internet.");
+        }
     }
 }
 
-function sendTextOnly(url, btn) {
-    const htmlContent = tinymce.get('adminBody').getContent();
-    const payload = {
-        action: "save_lesson",
-        course: document.getElementById('adminCourseSelect').value,
-        task: document.getElementById('adminTaskNum').value,
-        title: document.getElementById('adminTitle').value,
-        body: htmlContent
-    };
-
-    fetch(url, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) })
-    .then(() => {
-        alert("Text Lesson Uploaded!");
-        location.reload();
-    });
-}
-// --- DRAGGABLE CHAT BOX LOGIC ---
-const chatWidget = document.querySelector('.chat-widget');
-const chatHeader = document.querySelector('.chat-header');
-let isDragging = false;
-
-chatHeader.onmousedown = (e) => {
-    isDragging = true;
-    let shiftX = e.clientX - chatWidget.getBoundingClientRect().left;
-    let shiftY = e.clientY - chatWidget.getBoundingClientRect().top;
-
-    function moveAt(pageX, pageY) {
-        chatWidget.style.left = pageX - shiftX + 'px';
-        chatWidget.style.top = pageY - shiftY + 'px';
-        chatWidget.style.bottom = 'auto';
-        chatWidget.style.right = 'auto';
-    }
-
-    function onMouseMove(e) { if (isDragging) moveAt(e.pageX, e.pageY); }
-    document.addEventListener('mousemove', onMouseMove);
-
-    document.onmouseup = () => {
-        isDragging = false;
-        document.removeEventListener('mousemove', onMouseMove);
-    };
-};
-chatHeader.ondragstart = () => false;
-chatHeader.addEventListener('touchmove', function(e) {
-    var touchLocation = e.targetTouches[0];
-    chatWidget.style.left = touchLocation.pageX + 'px';
-    chatWidget.style.top = touchLocation.pageY + 'px';
-    chatWidget.style.bottom = 'auto';
-    chatWidget.style.right = 'auto';
-}, false);
-
-
-function showProgressReport() {
-    document.getElementById('progressOverlay').style.display = 'block';
-    
-    // Calculate percentages
-    const totalTasks = 100;
-    const percentage = Math.round((completedTasks / totalTasks) * 100);
-    
-    // Update the numbers
-    document.getElementById('totalPercent').innerText = percentage + "%";
-    document.getElementById('tasksDone').innerText = completedTasks + "/" + totalTasks;
-    
-    // Update the visual bars
-    // Note: In the future, you can save separate progress for each course in localStorage
-    document.getElementById('cyberBar').style.width = percentage + "%";
-    document.getElementById('webBar').style.width = percentage + "%";
-    document.getElementById('designBar').style.width = percentage + "%";
-}
-
-
-// Load saved progress when the page opens
+// --- 2. PORTAL PROGRESS & ROBOT GREETING ---
 window.onload = function() {
-    // 1. Load Profile - Match ID from portal (3).html line 38
+    // A. Profile Name Setup
     const savedName = localStorage.getItem('hct_user_name') || "Humble Student";
     const nameDisplay = document.getElementById('studentNameDisplay');
-    if(nameDisplay) {
-        nameDisplay.innerText = savedName;
-    }
+    if(nameDisplay) nameDisplay.innerText = savedName;
 
-    // 2. ROBOT GREETING
+    // B. Robot Greeting Logic
     const teacherBubble = document.getElementById('teacherBubble');
     const teacherSpeech = document.getElementById('teacherSpeech');
     if(teacherBubble && teacherSpeech) {
         teacherBubble.style.display = 'block';
-        teacherSpeech.innerText = `Welcome back, ${savedName}! Are you ready to master Cybersecurity today?`;
-        
-        // Auto-hide bubble after 7 seconds for a cleaner look
+        teacherSpeech.innerText = `Welcome back, ${savedName}! Ready to dominate your tasks?`;
         setTimeout(() => { teacherBubble.style.display = 'none'; }, 7000);
     }
 
-    // 3. SECURE LOCKOUT CHECK
-    let keys = Object.keys(localStorage);
-    let completedCount = keys.filter(key => key.startsWith('hct_task_done_')).length;
-
-    // Lock only if they hit 8 tasks AND are still on 'trial' status
-    if (completedCount >= 8 && localStorage.getItem('hct_access_status') !== 'unlocked') {
-        const accessGate = document.getElementById('accessGate');
-        const classroomOverlay = document.getElementById('classroomOverlay');
-        if(accessGate) accessGate.style.display = 'flex';
-        if(classroomOverlay) classroomOverlay.style.display = 'none';
-    }
+    // C. Lockout Calculation
+    checkLockoutStatus();
     
     if (typeof renderTasks === "function") renderTasks();
 };
 
-// This function runs when they click "Complete" inside a task
-function finishTask(num) {
-    const currentCourse = document.getElementById('classTitle').innerText;
-    
-    // SAVE: Create a unique key for THIS specific task in THIS specific course
-    // This ensures we don't double-count the same task if they refresh
-    localStorage.setItem(`hct_task_done_${currentCourse}_${num}`, "true");
-
-    closeTask();
-    renderTasks();
-
-    // Re-check count for immediate lockout
+function checkLockoutStatus() {
     let keys = Object.keys(localStorage);
     let completedCount = keys.filter(key => key.startsWith('hct_task_done_')).length;
 
     if (completedCount >= 8 && localStorage.getItem('hct_access_status') !== 'unlocked') {
-        document.getElementById('accessGate').style.display = 'flex';
-        document.getElementById('classroomOverlay').style.display = 'none';
+        const gate = document.getElementById('accessGate');
+        const overlay = document.getElementById('classroomOverlay');
+        if(gate) gate.style.display = 'flex';
+        if(overlay) overlay.style.display = 'none';
     }
 }
 
+// --- 3. TASK COMPLETION LOGIC ---
+function finishTask(num) {
+    // Using a safe course identifier
+    const rawTitle = document.getElementById('classTitle')?.innerText || "General";
+    const safeCourse = rawTitle.split(' ')[0].toLowerCase(); 
+    
+    localStorage.setItem(`hct_task_done_${safeCourse}_${num}`, "true");
+
+    if(typeof closeTask === "function") closeTask();
+    if(typeof renderTasks === "function") renderTasks();
+
+    checkLockoutStatus(); // Re-verify if they hit the limit
+}
+
+// --- 4. PROGRESS REPORT GENERATOR ---
+function showProgressReport() {
+    const overlay = document.getElementById('progressOverlay');
+    if(!overlay) return;
+
+    overlay.style.display = 'block';
+    
+    let keys = Object.keys(localStorage);
+    let totalDone = keys.filter(key => key.startsWith('hct_task_done_')).length;
+    let percentage = Math.round((totalDone / 100) * 100); // Assuming 100 tasks total
+    
+    document.getElementById('totalPercent').innerText = percentage + "%";
+    document.getElementById('tasksDone').innerText = totalDone + "/100";
+    
+    // Smoothly update the visual progress bars
+    const courses = ['cyberBar', 'webBar', 'designBar'];
+    courses.forEach(id => {
+        const bar = document.getElementById(id);
+        if(bar) bar.style.width = percentage + "%";
+    });
+}
 
 // --- VIRTUAL LAB ENGINE ---
     // --- LAB LOGIC ---
