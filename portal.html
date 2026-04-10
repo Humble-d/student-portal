@@ -612,9 +612,21 @@ function updateProfilePhoto(event) {
 // FUNCTION TO REQUEST THE CODE BY NAME
 async function requestRenewalCode() {
     const studentName = document.getElementById('regStudentName').value.trim();
-    if (!studentName) return alert("Please enter your registered name.");
+    const waBtn = document.getElementById('whatsappBtn');
+    
+    if (!studentName) {
+        alert("Please enter the exact name you used for registration.");
+        return;
+    }
+
+    // Change button state to show we are working
+    const genBtn = document.querySelector("#nameRequestArea button");
+    const originalText = genBtn.innerText;
+    genBtn.innerText = "🔍 VERIFYING NAME...";
+    genBtn.disabled = true;
 
     try {
+        // We use POST to match your Google Script's 'doPost' logic
         const response = await fetch(scriptURL, { 
             method: 'POST', 
             body: JSON.stringify({
@@ -626,20 +638,28 @@ async function requestRenewalCode() {
         const result = await response.text();
 
         if (result === "Name Not Found") {
-            alert("This name was not found in our records. Please make sure it matches the name you registered with exactly.");
+            alert("This name was not found in our records. Please ensure it matches your registration name exactly.");
         } else {
-            alert(`Code Generated Successfully!\n\nYour Unique Renewal Code is: ${result}\n\nPlease copy this code and send it to Director Emmanuel via WhatsApp for verification.`);
+            // SUCCESS: Result contains the HCST-RNW code
+            alert(`Success! Your Renewal Code is: ${result}\n\nPlease send this to Director Emmanuel on WhatsApp.`);
             
-            const waBtn = document.getElementById('whatsappBtn');
+            // Prepare the WhatsApp link with your specific personal business link
             const encodedMsg = encodeURIComponent(`Hello Director Emmanuel, I just made my payment for the portal. My registration name is ${studentName} and my generated Renewal Code is: ${result}. Please verify my receipt.`);
-            waBtn.href = `https://wa.me/message/5636MVP3GLY7A1?text=${encodedMsg}`;
             
+            // Using your specific WhatsApp link from the code
+            waBtn.href = `https://wa.me/message/5636MVP3GLY7A1?text=${encodedMsg}`;
+            waBtn.style.display = "block"; // Make sure the green button shows up
+            
+            // Show the area to enter the code
             document.getElementById('codeEntryArea').style.display = 'block';
             localStorage.setItem('temp_renewal_code', result);
         }
     } catch (error) {
         console.error("Error:", error);
-        alert("Network error. Please check your internet connection.");
+        alert("Network error. Please check your connection and try again.");
+    } finally {
+        genBtn.innerText = originalText;
+        genBtn.disabled = false;
     }
 }
 
@@ -1031,19 +1051,29 @@ function showProgressReport() {
 
 // Load saved progress when the page opens
 window.onload = function() {
-    // 1. Load Profile
+    // 1. Load Profile - Match ID from portal (3).html line 38
     const savedName = localStorage.getItem('hct_user_name') || "Humble Student";
-    if(document.getElementById('displayStudentName')) {
-        document.getElementById('displayStudentName').innerText = savedName;
+    const nameDisplay = document.getElementById('studentNameDisplay');
+    if(nameDisplay) {
+        nameDisplay.innerText = savedName;
     }
 
-    // 2. SAFE LOCKOUT CHECK (Counts unique tasks completed)
+    // 2. ROBOT GREETING
+    const teacherBubble = document.getElementById('teacherBubble');
+    const teacherSpeech = document.getElementById('teacherSpeech');
+    if(teacherBubble && teacherSpeech) {
+        teacherBubble.style.display = 'block';
+        teacherSpeech.innerText = `Welcome back, ${savedName}! Are you ready to master Cybersecurity today?`;
+        
+        // Auto-hide bubble after 7 seconds for a cleaner look
+        setTimeout(() => { teacherBubble.style.display = 'none'; }, 7000);
+    }
+
+    // 3. SECURE LOCKOUT CHECK
     let keys = Object.keys(localStorage);
     let completedCount = keys.filter(key => key.startsWith('hct_task_done_')).length;
 
-    console.log("Total unique tasks finished:", completedCount);
-
-    // If they hit 8 and haven't paid, lock them out
+    // Lock only if they hit 8 tasks AND are still on 'trial' status
     if (completedCount >= 8 && localStorage.getItem('hct_access_status') !== 'unlocked') {
         const accessGate = document.getElementById('accessGate');
         const classroomOverlay = document.getElementById('classroomOverlay');
