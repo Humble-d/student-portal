@@ -69,7 +69,8 @@ function verifyAccess() {
     if (data.result === "Valid") {
       alert("Access Granted!");
       localStorage.setItem("hct_access", "granted");
-      window.location.href = "portal.html"; 
+        // Use ./ to tell the browser "Look in the same folder I am in right now"
+      window.location.href = "./portal.html";
     } else {
       alert("Invalid Code. Please make sure you entered it correctly.");
     }
