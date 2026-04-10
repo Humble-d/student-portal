@@ -533,137 +533,112 @@
 </div>
 
 
-<script>
-    // FIX 1: Ensure the redirect matches your index.html
-    if (localStorage.getItem("hct_access") !== "granted") {
-        window.location.href = "index.html"; 
+// --- 1. CORE CONFIGURATION ---
+const scriptURL = "https://script.google.com/macros/s/AKfycby5CQVpB-T7WsHo6pWTXCl1tsis-DCVd-gGA7B08UbcXxLvKGawL8FJdydvyKixN3ELkg/exec"; 
+
+// --- 2. STARTUP & LOCKOUT LOGIC ---
+window.onload = function() {
+    // A. Load Profile (Matching the IDs in your HTML)
+    const savedName = localStorage.getItem('hct_user_name') || "Humble Student";
+    if(document.getElementById('studentNameDisplay')) {
+        document.getElementById('studentNameDisplay').innerText = savedName;
     }
-    function logout() {
-        localStorage.removeItem("hct_access");
-        window.location.href = "index.html";
+
+    // B. Robot Greeting (Using your Mascot IDs)
+    const teacherBubble = document.getElementById('teacherBubble');
+    const teacherSpeech = document.getElementById('teacherSpeech');
+    if(teacherBubble && teacherSpeech) {
+        teacherBubble.style.display = 'block';
+        teacherSpeech.innerText = `Welcome back, ${savedName}! Ready to dominate Cybersecurity?`;
+        setTimeout(() => { teacherBubble.style.display = 'none'; }, 7000);
     }
 
-    const scriptURL = "https://script.google.com/macros/s/AKfycby5CQVpB-T7WsHo6pWTXCl1tsis-DCVd-gGA7B08UbcXxLvKGawL8FJdydvyKixN3ELkg/exec"; 
+    // C. Lockout Check (Strict unique task counting)
+    let keys = Object.keys(localStorage);
+    let completedCount = keys.filter(key => key.startsWith('hct_task_done_')).length;
+    const isUnlocked = localStorage.getItem('hct_access_status') === 'unlocked';
 
-    // --- COMBINED STARTUP LOGIC ---
-    window.onload = function() {
-        // 1. Profile Loading
-        const savedName = localStorage.getItem('hct_user_name') || "Humble Student";
-        const studentNameDisplay = document.getElementById('studentNameDisplay');
-        if(studentNameDisplay) {
-            studentNameDisplay.innerText = savedName;
+    if (completedCount >= 8 && !isUnlocked) {
+        document.getElementById('accessGate').style.display = 'flex';
+        document.getElementById('classroomOverlay').style.display = 'none';
+    }
+
+    // D. Initialize your map
+    if (typeof loadTaskBar === "function") loadTaskBar("cyber"); 
+};
+
+// --- 3. THE LESSON FETCHING FIX (Crucial for "Enter Class") ---
+async function loadSpecificTask(courseName, taskNum) {
+    const modal = document.getElementById('taskModal');
+    const body = document.getElementById('modalTaskBody');
+    const title = document.getElementById('modalTaskTitle');
+    const completeBtn = document.getElementById('completeBtn');
+
+    modal.style.display = 'flex';
+    body.innerHTML = "<div style='text-align:center; padding:20px; color:#f39c12;'>⚡ Mr. Humble is fetching your lesson...</div>";
+
+    try {
+        // We use 'getLesson' to match your updated Admin Panel
+        const response = await fetch(`${scriptURL}?action=getLesson&course=${courseName.toLowerCase()}&task=${taskNum}`);
+        const data = await response.json();
+
+        if (data && data.body) {
+            title.innerText = data.title || `Task #${taskNum}`;
+            // This is the FIX: It injects the full HTML (Character + Lesson)
+            body.innerHTML = data.body; 
+        } else {
+            body.innerHTML = "<div style='text-align:center;'><p>🚀 No lesson content found for this task yet.</p></div>";
         }
+    } catch (err) {
+        body.innerHTML = "<p>⚠️ Connection Error. Ensure your Google Script is Deployed as 'Anyone'.</p>";
+    }
 
-        // 2. PERSONALIZED ROBOT GREETING
-        const teacherBubble = document.getElementById('teacherBubble');
-        const teacherSpeech = document.getElementById('teacherSpeech');
-        if(teacherBubble && teacherSpeech) {
-            teacherBubble.style.display = 'block';
-            teacherSpeech.innerText = `Welcome back, ${savedName}! Are you ready to master Cybersecurity today?`;
-            setTimeout(() => { teacherBubble.style.display = 'none'; }, 7000);
-        }
-
-        // 3. SECURE LOCKOUT CHECK (Fixes the Image 2 error)
-        let keys = Object.keys(localStorage);
-        let completedCount = keys.filter(key => key.startsWith('hct_task_done_')).length;
-        
-        const isUnlocked = localStorage.getItem('hct_access_status') === 'unlocked';
-
-        if (completedCount >= 8 && !isUnlocked) {
-            document.getElementById('accessGate').style.display = 'flex';
-            document.getElementById('classroomOverlay').style.display = 'none';
-        }
-
-        if (typeof renderTasks === "function") renderTasks();
+    // Completion Logic
+    completeBtn.onclick = () => {
+        localStorage.setItem(`hct_task_done_${courseName}_${taskNum}`, "true");
+        modal.style.display = 'none';
+        location.reload(); // Refresh to update the map colors
     };
+}
 
-    // FIX 2: Correcting the Lesson Fetching Logic
-    async function loadSpecificTask(courseName, taskNum) {
-        const modal = document.getElementById('taskModal');
-        const body = document.getElementById('modalTaskBody');
-        const title = document.getElementById('modalTaskTitle');
-        const completeBtn = document.getElementById('completeBtn');
+// --- 4. RENEWAL & WHATSAPP LOGIC (Keeping your personal info) ---
+async function requestRenewalCode() {
+    const studentName = document.getElementById('regStudentName').value.trim();
+    if (!studentName) return alert("Please enter your registered name.");
 
-        modal.style.display = 'flex';
-        body.innerHTML = "<div style='text-align:center; padding:20px;'><p>⚡ Mr. Humble is fetching your lesson...</p></div>";
-        title.innerText = `Task #${taskNum}`;
-
-        try {
-            // We ask the Google Script for the lesson
-            const response = await fetch(`${scriptURL}?action=getLesson&course=${courseName.toLowerCase()}&task=${taskNum}`);
-            const data = await response.json();
-
-            if (data && data.body) {
-                title.innerText = data.title || `Task #${taskNum}`;
-                // This is the FIX: It now correctly pulls the full 'body' (character + text)
-                body.innerHTML = `<div class="premium-lesson-content">${data.body}</div>`;
-            } else {
-                body.innerHTML = "<div style='text-align:center;'><p>🚀 No lesson found. Director Emmanuel is preparing this task!</p></div>";
-            }
-        } catch (err) {
-            body.innerHTML = "<p>⚠️ Connection Error. Ensure your Google Script is Deployed as 'Anyone'.</p>";
-        }
-
-        // UPDATE COMPLETION LOGIC
-        completeBtn.onclick = () => {
-            // Unique key per task to prevent count errors
-            localStorage.setItem(`hct_task_done_${courseName}_${taskNum}`, "true");
-            
-            modal.style.display = 'none';
-            if (typeof renderTasks === "function") renderTasks();
-            
-            // Re-check lockout immediately
-            let keys = Object.keys(localStorage);
-            let totalDone = keys.filter(key => key.startsWith('hct_task_done_')).length;
-            if (totalDone >= 8 && localStorage.getItem('hct_access_status') !== 'unlocked') {
-                location.reload(); 
-            }
-        };
-    }
-
-    // --- YOUR PERSONAL FUNCTIONS (Kept Exactly as they were) ---
-    function requestRenewalCode() {
-        const studentName = document.getElementById('regStudentName').value.trim();
-        if (!studentName) return alert("Please enter your registered name.");
-        
-        // This keeps your WhatsApp and Renewal logic active
-        fetch(scriptURL, { 
+    try {
+        const response = await fetch(scriptURL, { 
             method: 'POST', 
             body: JSON.stringify({ action: "checkRenewal", name: studentName })
-        })
-        .then(res => res.text())
-        .then(result => {
-            if (result === "Name Not Found") {
-                alert("Name not found. Check spelling or contact Mr. Emmanuel.");
-            } else {
-                alert(`Renewal Code: ${result}`);
-                const encodedMsg = encodeURIComponent(`Hello Director Emmanuel, my name is ${studentName}. My Renewal Code is: ${result}.`);
-                document.getElementById('whatsappBtn').href = `https://wa.me/message/5636MVP3GLY7A1?text=${encodedMsg}`;
-                document.getElementById('codeEntryArea').style.display = 'block';
-            }
         });
-    }
+        const result = await response.text();
 
-    // Your Draggable Chat Logic
-    let isDragging = false;
-    function initDraggableChat() {
-        const chatHeader = document.querySelector('.chat-header');
-        const chatWidget = document.querySelector('.chat-widget');
-        if(!chatHeader) return;
-        chatHeader.onmousedown = (e) => {
-            isDragging = true;
-            let shiftX = e.clientX - chatWidget.getBoundingClientRect().left;
-            let shiftY = e.clientY - chatWidget.getBoundingClientRect().top;
-            document.onmousemove = (e) => {
-                if(isDragging) {
-                    chatWidget.style.left = e.pageX - shiftX + 'px';
-                    chatWidget.style.top = e.pageY - shiftY + 'px';
-                }
-            };
-            document.onmouseup = () => { isDragging = false; };
+        if (result === "Name Not Found") {
+            alert("Record not found. Ensure the name matches exactly.");
+        } else {
+            alert(`Renewal Code Generated: ${result}`);
+            const encodedMsg = encodeURIComponent(`Hello Director Emmanuel, I just made payment. My name is ${studentName} and my Renewal Code is: ${result}.`);
+            // Your personal WhatsApp Link
+            document.getElementById('whatsappBtn').href = `https://wa.me/message/5636MVP3GLY7A1?text=${encodedMsg}`;
+            document.getElementById('codeEntryArea').style.display = 'block';
+        }
+    } catch (e) { alert("Error connecting to server."); }
+}
+
+// --- 5. DRAGGABLE CHAT LOGIC (Kept as requested) ---
+const chatWidget = document.querySelector('.chat-widget');
+const chatHeader = document.querySelector('.chat-header');
+if(chatHeader) {
+    chatHeader.onmousedown = (e) => {
+        let shiftX = e.clientX - chatWidget.getBoundingClientRect().left;
+        let shiftY = e.clientY - chatWidget.getBoundingClientRect().top;
+        document.onmousemove = (e) => {
+            chatWidget.style.left = e.pageX - shiftX + 'px';
+            chatWidget.style.top = e.pageY - shiftY + 'px';
         };
-    }
-</script>
+        document.onmouseup = () => { document.onmousemove = null; };
+    };
+}
 
 <div id="adminContainer" style="background:#1e293b; padding:20px; border-top:2px solid #22c55e; margin-top:50px;">
     
