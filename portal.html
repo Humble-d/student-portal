@@ -1871,6 +1871,7 @@ function initWordProcessor() {
     <div id="saveStatus" style="margin-top: 10px; font-weight: bold; color: #f39c12;">☁️ Waiting for input...</div>
 </div> 
 <script>
+<script>
 document.addEventListener("DOMContentLoaded", function() {
     if (typeof DecoupledEditor !== 'undefined') {
         DecoupledEditor
@@ -1896,7 +1897,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 toolbarContainer.appendChild(editor.ui.view.toolbar.element);
                 window.myEditor = editor; 
 
-                // --- LIVE GAMING PREVIEW ENGINE ---
+                // --- LIVE GAMING PREVIEW (AVATAAARS STYLE) ---
                 editor.model.document.on('change:data', () => {
                     const data = editor.getData();
                     const previewContainer = document.getElementById('livePreview');
@@ -1909,14 +1910,14 @@ document.addEventListener("DOMContentLoaded", function() {
                         let previewHtml = `<div class="game-preview-window" style="background:#0f172a; padding:20px; border-radius:20px; border:2px solid #334155;">`;
                         
                         elements.forEach((el, index) => {
-                            // PREMIUM SELECTION: This picks 1 of 100+ unique characters
                             const charNumber = (index % 100) + 1;
-                            const avatar = `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=HumbleChar${charNumber}&backgroundColor=b6e3f4,c0aede,ffd5dc`;
+                            // CHANGED TO AVATAAARS: This matches your preferred images 2-7
+                            const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=Humble${charNumber}&backgroundColor=b6e3f4,c0aede,ffd5dc`;
 
                             previewHtml += `
                                 <div class="game-card" style="margin-bottom:30px; border-left:4px solid #22c55e; padding-left:15px;">
                                     <div style="display:flex; gap:12px; align-items:center; margin-bottom:10px;">
-                                        <img src="${avatar}" style="width:40px; height:40px; border-radius:8px; background:white;">
+                                        <img src="${avatar}" style="width:50px; height:50px; border-radius:50%; background:white; border:2px solid #22c55e;">
                                         <span style="color:#22c55e; font-weight:bold; font-size:0.8rem;">STEP ${index + 1}</span>
                                     </div>
                                     <div style="background:#1e293b; color:#f8fafc; padding:15px; border-radius:12px; font-size:0.95rem;">
@@ -1961,17 +1962,18 @@ async function submitLessonNote() {
 
     elements.forEach((el, index) => {
         const charID = Math.floor(Math.random() * 100) + 1;
-        const avatar = `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=Teacher${charID}&backgroundColor=b6e3f4,c0aede,ffdfbf`;
+        // CHANGED TO AVATAAARS: Every paragraph gets a unique human character
+        const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=Teacher${charID}&backgroundColor=b6e3f4,c0aede,ffdfbf`;
 
         finalGameHtml += `
             <div class="lesson-step" id="step_${index}" style="display: ${index === 0 ? 'block' : 'none'}; animation: slideIn 0.5s ease;">
                 <div class="duo-premium-card" style="display:flex; gap:15px; align-items:flex-start;">
-                    <img src="${avatar}" style="width:70px; height:70px; border-radius:15px; border:3px solid #22c55e; background:#fff; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                    <img src="${avatar}" style="width:80px; height:80px; border-radius:50%; border:3px solid #22c55e; background:#fff; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
                     <div class="duo-bubble" style="background:white; border:2px solid #e2e8f0; padding:25px; border-radius:22px; color:#1e293b; flex:1; box-shadow: 0 6px 0 #f1f5f9; position:relative;">
                         <div class="text-content" style="font-size:1.1rem; line-height:1.6;">${el.outerHTML}</div>
                         
                         <div class="ai-interaction-zone" style="margin-top:20px; padding-top:20px; border-top:2px dashed #e2e8f0;">
-                            <p style="font-weight:bold; color:#22c55e; margin-bottom:10px;">"Any questions on this section?"</p>
+                            <p style="font-weight:bold; color:#22c55e; margin-bottom:10px;">"Do you understand this part?"</p>
                             <div style="display:flex; gap:10px;">
                                 <button onclick="triggerAiSearch('${index}', '${course}')" style="background:#22c55e; color:white; border:none; padding:10px 20px; border-radius:12px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 0 #15803d;">💡 ASK AI</button>
                                 <button onclick="nextGameStep(${index})" style="background:#f1f5f9; color:#64748b; border:1px solid #e2e8f0; padding:10px 20px; border-radius:12px; font-weight:bold; cursor:pointer;">CONTINUE ➔</button>
@@ -2001,7 +2003,7 @@ async function submitLessonNote() {
             const res = document.getElementById('ai_res_'+id);
             res.style.display = 'block';
             res.innerHTML = "<b>Researching...</b>";
-            // Replace 'YOUR_AI_ENDPOINT' with your real Google Script AI URL if you have one
+            // Replace with your real AI endpoint URL
             const url = "https://script.google.com/macros/s/YOUR_AI_ENDPOINT/exec?query=" + encodeURIComponent(q);
             try {
                 const response = await fetch(url);
@@ -2028,6 +2030,7 @@ async function submitLessonNote() {
         location.reload();
     });
 }
+</script>
 </script>
         
 </div>
