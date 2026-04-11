@@ -506,214 +506,6 @@
 <script>
   
 // --- 1. CORE CONFIGURATION ---
-const MONTH_IN_MS = 30 * 24 * 60 * 60 * 1000; 
-// Use your Master Web App URL here
-const scriptURL = "https://script.google.com/macros/s/AKfycby5CQVpB-T7WsHo6pWTXCl1tsis-DCVd-gGA7B08UbcXxLvKGawL8FJdydvyKixN3ELkg/exec"; 
-
-// --- 2. STARTUP LOGIC (RECORRECTED) ---
-window.onload = function() {
-    // A. Profile Loading
-    const savedName = localStorage.getItem('hct_user_name') || "Humble Student";
-    const savedPhoto = localStorage.getItem('hct_user_photo');
-    
-    // Using the IDs found in your HTML
-    if(document.getElementById('studentNameDisplay')) {
-        document.getElementById('studentNameDisplay').innerText = savedName;
-    }
-    if(savedPhoto && document.getElementById('displayPhoto')) {
-        document.getElementById('displayPhoto').src = savedPhoto;
-    }
-
-    // B. Robot Greeting (Personalized)
-    const teacherBubble = document.getElementById('teacherBubble');
-    const teacherSpeech = document.getElementById('teacherSpeech');
-    if(teacherBubble && teacherSpeech) {
-        teacherBubble.style.display = 'block';
-        teacherSpeech.innerText = `Welcome back, ${savedName}! Ready to dominate your tasks today?`;
-        setTimeout(() => { teacherBubble.style.display = 'none'; }, 7000);
-    }
-
-    // C. Secure Lockout Check
-    checkAccessLock();
-
-    // D. Initialize Map
-    if (typeof loadTaskBar === "function") loadTaskBar("cyber"); 
-};
-
-function checkAccessLock() {
-    let keys = Object.keys(localStorage);
-    let completedCount = keys.filter(key => key.startsWith('hct_task_done_')).length;
-    const isUnlocked = localStorage.getItem('hct_access_status') === 'unlocked';
-
-    if (completedCount >= 8 && !isUnlocked) {
-        document.getElementById('accessGate').style.display = 'flex';
-        document.getElementById('classroomOverlay').style.display = 'none';
-    }
-}
-
-// --- 3. THE "ENTER CLASS" FIX (RECORRECTED) ---
-async function loadSpecificTask(courseName, taskNum) {
-    const modal = document.getElementById('taskModal');
-    const body = document.getElementById('modalTaskBody');
-    const title = document.getElementById('modalTaskTitle');
-    const completeBtn = document.getElementById('completeBtn');
-
-    modal.style.display = 'flex';
-    body.innerHTML = "<div style='text-align:center; padding:20px; color:#f39c12;'>⚡ Mr. Humble is fetching your lesson...</div>";
-
-    try {
-        // Fetching with the correct 'getLesson' action
-        const response = await fetch(`${scriptURL}?action=getLesson&course=${courseName.toLowerCase()}&task=${taskNum}`);
-        const data = await response.json();
-
-        if (data && data.body) {
-            title.innerText = data.title || `Task #${taskNum}`;
-            // This renders the full Premium block (Mascot + Text)
-            body.innerHTML = data.body; 
-        } else {
-            body.innerHTML = "<div style='text-align:center;'><p>🚀 No lesson found. Director Emmanuel is updating this task!</p></div>";
-        }
-    } catch (err) {
-        body.innerHTML = "<p>⚠️ Connection Error. Ensure your Google Script is Deployed as 'Anyone'.</p>";
-    }
-
-    // Task Completion
-    completeBtn.onclick = () => {
-        // Unique key to prevent double counting
-        localStorage.setItem(`hct_task_done_${courseName}_${taskNum}`, "true");
-        modal.style.display = 'none';
-        
-        // Unlock next task visually
-        localStorage.setItem(`${courseName}_task_${taskNum + 1}`, "unlocked");
-        
-        loadTaskBar(courseName);
-        checkAccessLock();
-    };
-}
-
-// --- 4. YOUR PERSONAL FUNCTIONS (RETAINED) ---
-
-function requestRenewalCode() {
-    const studentName = document.getElementById('regStudentName').value.trim();
-    if (!studentName) return alert("Please enter your registered name.");
-
-    fetch(scriptURL, { 
-        method: 'POST', 
-        body: JSON.stringify({ action: "checkRenewal", name: studentName })
-    })
-    .then(res => res.text())
-    .then(result => {
-        if (result === "Name Not Found") {
-            alert("Record not found. Ensure spelling matches your registration.");
-        } else {
-            alert(`Renewal Code: ${result}`);
-            const encodedMsg = encodeURIComponent(`Hello Director Emmanuel, my name is ${studentName}. My Renewal Code is: ${result}.`);
-            document.getElementById('whatsappBtn').href = `https://wa.me/message/5636MVP3GLY7A1?text=${encodedMsg}`;
-            document.getElementById('codeEntryArea').style.display = 'block';
-        }
-    });
-}
-
-// Your Draggable Chat Box Logic
-const chatWidget = document.querySelector('.chat-widget');
-const chatHeader = document.querySelector('.chat-header');
-if(chatHeader && chatWidget) {
-    chatHeader.onmousedown = (e) => {
-        let shiftX = e.clientX - chatWidget.getBoundingClientRect().left;
-        let shiftY = e.clientY - chatWidget.getBoundingClientRect().top;
-        document.onmousemove = (e) => {
-            chatWidget.style.left = e.pageX - shiftX + 'px';
-            chatWidget.style.top = e.pageY - shiftY + 'px';
-        };
-        document.onmouseup = () => { document.onmousemove = null; };
-    };
-}
-
-function showProgressReport() {
-    document.getElementById('progressOverlay').style.display = 'block';
-    let keys = Object.keys(localStorage);
-    let completed = keys.filter(key => key.startsWith('hct_task_done_')).length;
-    let percent = Math.min(Math.round((completed / 50) * 100), 100);
-    
-    document.getElementById('totalPercent').innerText = percent + "%";
-    document.getElementById('tasksDone').innerText = completed + "/50";
-    if(document.getElementById('cyberBar')) document.getElementById('cyberBar').style.width = percent + "%";
-}
-
-// Your Map Generator
-function loadTaskBar(courseName) {
-    const container = document.getElementById('taskBar');
-    if (!container) return;
-    container.innerHTML = "";
-    for (let i = 1; i <= 50; i++) {
-        const status = (i === 1) ? (localStorage.getItem(`${courseName}_task_1`) || "unlocked") : (localStorage.getItem(`${courseName}_task_${i}`) || "locked");
-        const node = document.createElement('div');
-        node.className = `task-node ${status}`;
-        node.innerHTML = i % 2 === 0 ? `📝<br>${i}` : `📖<br>${i}`;
-        if (status !== "locked") node.onclick = () => loadSpecificTask(courseName, i);
-        container.appendChild(node);
-    }
-}
-
-
-
-
-
-</Script>
-
-<div id="adminContainer" style="background:#1e293b; padding:20px; border-top:2px solid #22c55e; margin-top:50px;">
-    
-    <div id="adminAuth">
-        <h3 style="color:#22c55e; margin-bottom:10px;">HCSTI Admin Access</h3>
-        <input type="password" id="adminPass" placeholder="Enter Admin Password" style="max-width:300px;">
-        <button onclick="checkAdminPass()" style="background:#22c55e; color:white; padding:10px 20px; border:none; border-radius:5px; cursor:pointer; margin-top:10px;">Unlock Dashboard</button>
-    </div>
-
-
-
-<div id="adminPanel" style="display:none; padding: 20px;">
-    <h3>🛠️ Task Manager (Director Mode)</h3>
-    
-    <select id="adminCourseSelect" class="admin-input">
-        <option value="Cyber Security & PenTesting">Cyber Security</option>
-        <option value="Web Dev (HTML/CSS)">Web Dev</option>
-        <option value="Graphics Design">Graphics Design</option>
-    </select>
-    <input type="number" id="adminTaskNum" placeholder="Task Number" class="admin-input">
-    <input type="text" id="adminTitle" placeholder="Task Title" class="admin-input">
-
-    <div style="display: flex; gap: 10px; margin-bottom: 20px; justify-content: center;">
-        <button onclick="switchMode('type')" style="background:#334155; color:white; padding:8px 15px; border-radius:5px; border:none; cursor:pointer;">⌨️ Type Note</button>
-        <button onclick="switchMode('upload')" style="background:#334155; color:white; padding:8px 15px; border-radius:5px; border:none; cursor:pointer;">📎 Upload File</button>
-    </div>
-
-    <div id="typeModeSection">
-        <div id="toolbar-container" style="border: 1px solid #ccc; background: #fafafa;"></div>
-        <div style="display: flex; gap: 10px; margin-top: 10px;">
-            <div style="flex: 2; border: 1px solid #ccc; background: white; min-height: 500px; padding: 40px; color: #333;" id="wordEditor">
-                <h2>Humble CyberS Tech</h2>
-                <p>Start typing your lesson notes here...</p>
-            </div>
-            <div style="flex: 1; background: #121212; border-radius: 20px; padding: 15px; border: 8px solid #333; height: 600px; overflow-y: auto;">
-                <div style="color: gray; font-size: 0.7rem; text-align: center; margin-bottom: 10px;">📱 STUDENT LIVE PREVIEW</div>
-                <div id="livePreview" class="lesson-content" style="color: white;"></div>
-            </div>
-        </div>
-        <button type="button" class="modern-btn" onclick="submitTypedNote()" style="width:100%; margin-top:20px; background:#22c55e;">🚀 Post Typed Lesson</button>
-    </div>
-
-    <div id="uploadModeSection" style="display:none; background:#1e293b; padding:40px; border-radius:15px; text-align:center; border: 2px dashed #22c55e;">
-        <h4 style="color:#22c55e;">Upload Premium Document</h4>
-        <p style="color:#94a3b8;">Choose a Word, PDF, or high-res Image to convert into a Duo-style lesson.</p>
-        <input type="file" id="lessonFile" accept=".pdf,.doc,.docx,image/*" style="margin:20px 0; color:white;">
-        <br>
-        <button type="button" class="modern-btn" onclick="submitFileNote()" style="background:#22c55e; padding:15px 40px;">🚀 Convert & Upload File</button>
-    </div>
-
-    <div id="saveStatus" style="margin-top: 10px; font-weight: bold; color: #f39c12;">☁️ Waiting for input...</div>
-</div> 
-<script>// --- 1. CORE CONFIGURATION ---
-// --- 1. CORE CONFIGURATION ---
 const scriptURL = "https://script.google.com/macros/s/AKfycby5CQVpB-T7WsHo6pWTXCl1tsis-DCVd-gGA7B08UbcXxLvKGawL8FJdydvyKixN3ELkg/exec"; 
 
 // --- 2. STARTUP & LOCKOUT LOGIC ---
@@ -843,6 +635,187 @@ function requestRenewalCode() {
     if(document.getElementById('codeEntryArea')) {
         document.getElementById('codeEntryArea').style.display = 'block';
     }
+}
+
+
+
+</Script>
+
+<div id="adminContainer" style="background:#1e293b; padding:20px; border-top:2px solid #22c55e; margin-top:50px;">
+    
+    <div id="adminAuth">
+        <h3 style="color:#22c55e; margin-bottom:10px;">HCSTI Admin Access</h3>
+        <input type="password" id="adminPass" placeholder="Enter Admin Password" style="max-width:300px;">
+        <button onclick="checkAdminPass()" style="background:#22c55e; color:white; padding:10px 20px; border:none; border-radius:5px; cursor:pointer; margin-top:10px;">Unlock Dashboard</button>
+    </div>
+
+
+
+<div id="adminPanel" style="display:none; padding: 20px;">
+    <h3>🛠️ Task Manager (Director Mode)</h3>
+    
+    <select id="adminCourseSelect" class="admin-input">
+        <option value="Cyber Security & PenTesting">Cyber Security</option>
+        <option value="Web Dev (HTML/CSS)">Web Dev</option>
+        <option value="Graphics Design">Graphics Design</option>
+    </select>
+    <input type="number" id="adminTaskNum" placeholder="Task Number" class="admin-input">
+    <input type="text" id="adminTitle" placeholder="Task Title" class="admin-input">
+
+    <div style="display: flex; gap: 10px; margin-bottom: 20px; justify-content: center;">
+        <button onclick="switchMode('type')" style="background:#334155; color:white; padding:8px 15px; border-radius:5px; border:none; cursor:pointer;">⌨️ Type Note</button>
+        <button onclick="switchMode('upload')" style="background:#334155; color:white; padding:8px 15px; border-radius:5px; border:none; cursor:pointer;">📎 Upload File</button>
+    </div>
+
+    <div id="typeModeSection">
+        <div id="toolbar-container" style="border: 1px solid #ccc; background: #fafafa;"></div>
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+            <div style="flex: 2; border: 1px solid #ccc; background: white; min-height: 500px; padding: 40px; color: #333;" id="wordEditor">
+                <h2>Humble CyberS Tech</h2>
+                <p>Start typing your lesson notes here...</p>
+            </div>
+            <div style="flex: 1; background: #121212; border-radius: 20px; padding: 15px; border: 8px solid #333; height: 600px; overflow-y: auto;">
+                <div style="color: gray; font-size: 0.7rem; text-align: center; margin-bottom: 10px;">📱 STUDENT LIVE PREVIEW</div>
+                <div id="livePreview" class="lesson-content" style="color: white;"></div>
+            </div>
+        </div>
+        <button type="button" class="modern-btn" onclick="submitTypedNote()" style="width:100%; margin-top:20px; background:#22c55e;">🚀 Post Typed Lesson</button>
+    </div>
+
+    <div id="uploadModeSection" style="display:none; background:#1e293b; padding:40px; border-radius:15px; text-align:center; border: 2px dashed #22c55e;">
+        <h4 style="color:#22c55e;">Upload Premium Document</h4>
+        <p style="color:#94a3b8;">Choose a Word, PDF, or high-res Image to convert into a Duo-style lesson.</p>
+        <input type="file" id="lessonFile" accept=".pdf,.doc,.docx,image/*" style="margin:20px 0; color:white;">
+        <br>
+        <button type="button" class="modern-btn" onclick="submitFileNote()" style="background:#22c55e; padding:15px 40px;">🚀 Convert & Upload File</button>
+    </div>
+
+    <div id="saveStatus" style="margin-top: 10px; font-weight: bold; color: #f39c12;">☁️ Waiting for input...</div>
+</div> 
+<script>// --- 1. CORE CONFIGURATION ---
+// --- 1. CORE CONFIGURATION ---
+const scriptURL = "https://script.google.com/macros/s/AKfycby5CQVpB-T7WsHo6pWTXCl1tsis-DCVd-gGA7B08UbcXxLvKGawL8FJdydvyKixN3ELkg/exec"; 
+
+// --- 2. STARTUP & LOCKOUT LOGIC ---
+window.onload = function() {
+    const savedName = localStorage.getItem('hct_user_name') || "Humble Student";
+    if(document.getElementById('studentNameDisplay')) {
+        document.getElementById('studentNameDisplay').innerText = savedName;
+    }
+
+    // Robot Greeting
+    const teacherBubble = document.getElementById('teacherBubble');
+    if(teacherBubble) {
+        teacherBubble.style.display = 'block';
+        document.getElementById('teacherSpeech').innerText = `Welcome back, ${savedName}!`;
+        setTimeout(() => { teacherBubble.style.display = 'none'; }, 7000);
+    }
+
+    checkAccessLock();
+    // Initialize the map (Default to Cyber)
+    loadTaskBar("cyber"); 
+};
+
+// FIX: This function handles the "UNLOCK" button in your Admin/Gate area
+async function verifyAdminCode() {
+    const codeInput = document.getElementById('studentAccessCode').value;
+    const btn = document.querySelector('#codeEntryArea button');
+    
+    if(!codeInput) return alert("Please enter the code!");
+
+    btn.innerText = "VERIFYING...";
+    
+    // We check if the code matches your Google Script logic
+    try {
+        const response = await fetch(`${scriptURL}?action=verifyCode&code=${codeInput}`);
+        const data = await response.json();
+
+        if (data.result === "success") {
+            localStorage.setItem('hct_access_status', 'unlocked');
+            alert("✅ DASHBOARD UNLOCKED! Welcome to Premium Access.");
+            location.reload();
+        } else {
+            alert("❌ Invalid Code. Please contact Director Emmanuel.");
+        }
+    } catch (e) {
+        alert("Connection Error. Try again.");
+    } finally {
+        btn.innerText = "Unlock Dashboard";
+    }
+}
+
+function checkAccessLock() {
+    let keys = Object.keys(localStorage);
+    let completedCount = keys.filter(key => key.startsWith('hct_task_done_')).length;
+    const isUnlocked = localStorage.getItem('hct_access_status') === 'unlocked';
+
+    if (completedCount >= 8 && !isUnlocked) {
+        if(document.getElementById('accessGate')) document.getElementById('accessGate').style.display = 'flex';
+        if(document.getElementById('classroomOverlay')) document.getElementById('classroomOverlay').style.display = 'none';
+    }
+}
+
+// --- 3. THE "ENTER CLASS" FIX (Synchronized Name) ---
+async function loadSpecificTask(courseName, taskNum) {
+    const modal = document.getElementById('taskModal');
+    const body = document.getElementById('modalTaskBody');
+    const title = document.getElementById('modalTaskTitle');
+    const completeBtn = document.getElementById('completeBtn');
+
+    modal.style.display = 'flex';
+    body.innerHTML = "<div style='text-align:center; padding:30px;'>🌀 <br> Mr. Humble is fetching your premium lesson...</div>";
+
+    try {
+        const response = await fetch(`${scriptURL}?action=getLesson&course=${courseName.toLowerCase()}&task=${taskNum}`);
+        const data = await response.json();
+
+        if (data && data.body) {
+            title.innerText = data.title || `Task #${taskNum}`;
+            body.innerHTML = data.body; // Injects the Team of Robots we generated
+        } else {
+            body.innerHTML = "<div style='text-align:center;'><p>🚀 Lesson coming soon! Mr. Humble is still cooking this note.</p></div>";
+        }
+    } catch (err) {
+        body.innerHTML = "<p>⚠️ Error connecting to the portal. Check your internet.</p>";
+    }
+
+    completeBtn.onclick = () => {
+        localStorage.setItem(`hct_task_done_${courseName}_${taskNum}`, "true");
+        modal.style.display = 'none';
+        location.reload(); 
+    };
+}
+
+// --- 4. MAP GENERATOR (Matches your style.css) ---
+function loadTaskBar(courseName) {
+    const container = document.getElementById('taskBar');
+    if (!container) return;
+    container.innerHTML = "";
+    
+    for (let i = 1; i <= 50; i++) {
+        const isDone = localStorage.getItem(`hct_task_done_${courseName}_${i}`) === "true";
+        const status = isDone ? "completed" : (i === 1 ? "unlocked" : "locked");
+        
+        const node = document.createElement('div');
+        node.className = `task-node ${status}`;
+        node.innerHTML = i % 2 === 0 ? `📝<br>${i}` : `📖<br>${i}`;
+        
+        if (status !== "locked") {
+            node.onclick = () => loadSpecificTask(courseName, i);
+        }
+        container.appendChild(node);
+    }
+}
+
+// --- 5. RENEWAL SYSTEM ---
+function requestRenewalCode() {
+    const name = document.getElementById('regStudentName').value;
+    if(!name) return alert("Enter your registered name.");
+    
+    // Redirect to your specific WhatsApp for the code
+    const msg = encodeURIComponent(`Hello Director Emmanuel, I am ${name}. I need a renewal code for my portal.`);
+    window.open(`https://wa.me/message/5636MVP3GLY7A1?text=${msg}`, '_blank');
+    document.getElementById('codeEntryArea').style.display = 'block';
 }
 </script>
         
