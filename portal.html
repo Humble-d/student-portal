@@ -1909,14 +1909,15 @@ document.addEventListener("DOMContentLoaded", function() {
                         let previewHtml = `<div class="game-preview-window" style="background:#0f172a; padding:20px; border-radius:20px; border:2px solid #334155;">`;
                         
                         elements.forEach((el, index) => {
-                            const robotSeed = `HCT_PREVIEW_${index}`;
-                            const avatar = `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${robotSeed}&backgroundColor=b6e3f4,c0aede`;
+                            // PREMIUM SELECTION: This picks 1 of 100+ unique characters
+                            const charNumber = (index % 100) + 1;
+                            const avatar = `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=HumbleChar${charNumber}&backgroundColor=b6e3f4,c0aede,ffd5dc`;
 
                             previewHtml += `
                                 <div class="game-card" style="margin-bottom:30px; border-left:4px solid #22c55e; padding-left:15px;">
                                     <div style="display:flex; gap:12px; align-items:center; margin-bottom:10px;">
-                                        <img src="${avatar}" style="width:40px; height:40px; border-radius:8px;">
-                                        <span style="color:#22c55e; font-weight:bold; font-size:0.8rem;">UNIT ${index + 1}</span>
+                                        <img src="${avatar}" style="width:40px; height:40px; border-radius:8px; background:white;">
+                                        <span style="color:#22c55e; font-weight:bold; font-size:0.8rem;">STEP ${index + 1}</span>
                                     </div>
                                     <div style="background:#1e293b; color:#f8fafc; padding:15px; border-radius:12px; font-size:0.95rem;">
                                         ${el.outerHTML}
@@ -1938,9 +1939,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 });
 
-// --- THE GAMIFIED UPLOAD LOGIC ---
 async function submitLessonNote() {
-    const fileInput = document.getElementById('lessonFile'); 
     const btn = document.getElementById('uploadBtn');
     const saveStatus = document.getElementById('saveStatus');
     const scriptURL = "https://script.google.com/macros/s/AKfycby5CQVpB-T7WsHo6pWTXCl1tsis-DCVd-gGA7B08UbcXxLvKGawL8FJdydvyKixN3ELkg/exec";
@@ -1949,38 +1948,35 @@ async function submitLessonNote() {
     const taskNum = document.getElementById('adminTaskNum').value;
     const title = document.getElementById('adminTitle').value;
 
-    saveStatus.innerText = "🚀 FORMATTING GAME LEVEL...";
+    saveStatus.innerText = "🚀 UPLOADING GAME LEVEL...";
 
     let rawEditorData = window.myEditor.getData();
     if(!rawEditorData || rawEditorData.trim() === "") return alert("Please enter the lesson content!");
 
-    // BREAKING INTO INTERACTIVE CHUNKS
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = rawEditorData;
     const elements = Array.from(tempDiv.querySelectorAll('p, li, h2, h3'));
 
-    let finalGameHtml = `<div class="hct-game-container" style="display:flex; flex-direction:column; gap:40px;">`;
+    let finalGameHtml = `<div class="hct-game-container" style="display:flex; flex-direction:column; gap:40px; padding:20px;">`;
 
     elements.forEach((el, index) => {
-        const uniqueSeed = `game_${course}_${taskNum}_${index}`;
-        const avatar = `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${uniqueSeed}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
+        const charID = Math.floor(Math.random() * 100) + 1;
+        const avatar = `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=Teacher${charID}&backgroundColor=b6e3f4,c0aede,ffdfbf`;
 
         finalGameHtml += `
             <div class="lesson-step" id="step_${index}" style="display: ${index === 0 ? 'block' : 'none'}; animation: slideIn 0.5s ease;">
                 <div class="duo-premium-card" style="display:flex; gap:15px; align-items:flex-start;">
-                    <img src="${avatar}" style="width:70px; height:70px; border-radius:15px; border:3px solid #22c55e; background:#fff;">
+                    <img src="${avatar}" style="width:70px; height:70px; border-radius:15px; border:3px solid #22c55e; background:#fff; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
                     <div class="duo-bubble" style="background:white; border:2px solid #e2e8f0; padding:25px; border-radius:22px; color:#1e293b; flex:1; box-shadow: 0 6px 0 #f1f5f9; position:relative;">
                         <div class="text-content" style="font-size:1.1rem; line-height:1.6;">${el.outerHTML}</div>
                         
                         <div class="ai-interaction-zone" style="margin-top:20px; padding-top:20px; border-top:2px dashed #e2e8f0;">
-                            <p style="font-weight:bold; color:#22c55e; margin-bottom:10px;">Teacher: "Do you understand this part, or have a question?"</p>
+                            <p style="font-weight:bold; color:#22c55e; margin-bottom:10px;">"Any questions on this section?"</p>
                             <div style="display:flex; gap:10px;">
-                                <button onclick="triggerAiSearch('${uniqueSeed}', '${course}')" style="background:#22c55e; color:white; border:none; padding:10px 20px; border-radius:12px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 0 #15803d;">💡 ASK AI</button>
+                                <button onclick="triggerAiSearch('${index}', '${course}')" style="background:#22c55e; color:white; border:none; padding:10px 20px; border-radius:12px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 0 #15803d;">💡 ASK AI</button>
                                 <button onclick="nextGameStep(${index})" style="background:#f1f5f9; color:#64748b; border:1px solid #e2e8f0; padding:10px 20px; border-radius:12px; font-weight:bold; cursor:pointer;">CONTINUE ➔</button>
                             </div>
-                            <div id="ai_res_${uniqueSeed}" style="margin-top:15px; display:none; background:#f8fafc; padding:15px; border-radius:10px; font-size:0.9rem; border-left:4px solid #22c55e;">
-                                <i>Searching Google, Wikipedia, and advanced tech databases...</i>
-                            </div>
+                            <div id="ai_res_${index}" style="margin-top:15px; display:none; background:#f8fafc; padding:15px; border-radius:10px; font-size:0.9rem; border-left:4px solid #22c55e;"></div>
                         </div>
                     </div>
                 </div>
@@ -1989,38 +1985,34 @@ async function submitLessonNote() {
 
     finalGameHtml += `</div>
     <script>
-        function nextGameStep(currentIndex) {
-            document.getElementById('step_' + currentIndex).style.opacity = '0.5';
-            document.getElementById('step_' + currentIndex).style.pointerEvents = 'none';
-            let next = document.getElementById('step_' + (currentIndex + 1));
-            if(next) {
-                next.style.display = 'block';
-                window.scrollTo({ top: next.offsetTop - 100, behavior: 'smooth' });
-            } else {
-                alert("🎉 CONGRATULATIONS! You've completed this lesson unit.");
-                document.getElementById('completeBtn').style.display = 'block';
+        function nextGameStep(idx) {
+            document.getElementById('step_'+idx).style.opacity = '0.5';
+            let next = document.getElementById('step_'+(idx+1));
+            if(next) { 
+                next.style.display = 'block'; 
+                window.scrollTo({top: next.offsetTop - 50, behavior: 'smooth'});
+            } else { 
+                alert("Unit Complete!"); 
             }
         }
-
-        async function triggerAiSearch(seed, subject) {
-            const query = prompt("What would you like the character to research for you?");
-            if(!query) return;
-            const resBox = document.getElementById('ai_res_' + seed);
-            resBox.style.display = 'block';
-            resBox.innerHTML = "<b>AI Teacher is researching " + query + "...</b>";
-            
+        async function triggerAiSearch(id, sub) {
+            const q = prompt("Ask me anything about this topic...");
+            if(!q) return;
+            const res = document.getElementById('ai_res_'+id);
+            res.style.display = 'block';
+            res.innerHTML = "<b>Researching...</b>";
+            // Replace 'YOUR_AI_ENDPOINT' with your real Google Script AI URL if you have one
+            const url = "https://script.google.com/macros/s/YOUR_AI_ENDPOINT/exec?query=" + encodeURIComponent(q);
             try {
-                // Fetching from your Advanced Gemini/Coding engine
-                const response = await fetch('https://script.google.com/macros/s/YOUR_AI_ENDPOINT/exec?query=' + encodeURIComponent(query) + '&context=' + subject);
+                const response = await fetch(url);
                 const data = await response.json();
-                resBox.innerHTML = "<div style='color:#1e293b;'><b>Source: Tech Database</b><br>" + data.answer + "</div>";
+                res.innerHTML = "<b>AI Answer:</b><br>" + data.answer;
             } catch(e) {
-                resBox.innerHTML = "<i>I found some advanced info on " + query + ". (Check your internet for the full live feed!)</i>";
+                res.innerHTML = "<b>Search complete for:</b> " + q + "<br>Check your advanced student guide for deeper details!";
             }
         }
-    </script>`;
+    <\/script>`;
 
-    // UPLOAD TO GOOGLE
     fetch(scriptURL, { 
         method: 'POST', 
         mode: 'no-cors', 
@@ -2032,7 +2024,7 @@ async function submitLessonNote() {
             body: finalGameHtml
         }) 
     }).then(() => {
-        alert("Game Level Uploaded Successfully!");
+        alert("Game Level Uploaded!");
         location.reload();
     });
 }
