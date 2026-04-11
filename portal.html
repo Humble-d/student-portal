@@ -2034,46 +2034,7 @@ async function submitLessonNote() {
     });
 }
 </script>
-        function unlockNext(i) {
-            document.getElementById('step_'+i).style.opacity = '0.6';
-            let next = document.getElementById('step_'+(i+1));
-            if(next) { 
-                next.style.display = 'block'; 
-                window.scrollTo({top: next.offsetTop - 50, behavior: 'smooth'});
-            } else { alert("Level Finished! Well done!"); }
-        }
-        async function askAITeacher(id) {
-            const q = prompt("What should I research for you on Google/Wikipedia?");
-            if(!q) return;
-            const box = document.getElementById('ai_box_'+id);
-            box.style.display = 'block';
-            box.innerHTML = "<b>Teacher is researching...</b>";
-            try {
-                const r = await fetch("https://script.google.com/macros/s/YOUR_AI_URL/exec?query="+encodeURIComponent(q));
-                const d = await r.json();
-                box.innerHTML = "<b>AI Answer:</b><br>" + d.answer;
-            } catch(e) {
-                box.innerHTML = "<b>Research complete:</b> I've searched the database for '" + q + "'. Check your student email for the detailed report!";
-            }
-        }
-    <\/script>`;
-
-    fetch(scriptURL, { 
-        method: 'POST', 
-        mode: 'no-cors', 
-        body: JSON.stringify({
-            action: "save_lesson",
-            course: course,
-            task: taskNum,
-            title: title,
-            body: finalGameHtml
-        }) 
-    }).then(() => {
-        alert("Section-based Lesson Uploaded!");
-        location.reload();
-    });
-}
-</script>
+      
         
 </div>
             
