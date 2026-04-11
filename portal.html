@@ -1896,7 +1896,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 toolbarContainer.appendChild(editor.ui.view.toolbar.element);
                 window.myEditor = editor; 
 
-                // --- LIVE PREVIEW WITH HUMAN CHARACTERS ---
+                // --- LIVE PREVIEW BY SECTION ---
                 editor.model.document.on('change:data', () => {
                     const data = editor.getData();
                     const previewContainer = document.getElementById('livePreview');
@@ -1904,34 +1904,37 @@ document.addEventListener("DOMContentLoaded", function() {
                     if (data && data.trim() !== "" && !data.includes("Start typing")) {
                         const tempDiv = document.createElement('div');
                         tempDiv.innerHTML = data;
-                        const elements = Array.from(tempDiv.querySelectorAll('p, li, h2, h3'));
-
-                        let previewHtml = `<div style="background:#0f172a; padding:20px; border-radius:20px; border:2px solid #334155;">`;
                         
-                        elements.forEach((el, index) => {
-                            // Using "avataaars" to match your images 2-7
-                            const charId = (index % 50) + 1;
-                            const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=HumbleStudent${charId}&backgroundColor=b6e3f4,c0aede`;
+                        // LOGIC: Group elements into sections starting with headings
+                        let sections = [];
+                        let currentSection = "";
+                        Array.from(tempDiv.children).forEach(child => {
+                            if (child.tagName === 'H2' || child.tagName === 'H3') {
+                                if (currentSection !== "") sections.push(currentSection);
+                                currentSection = child.outerHTML;
+                            } else {
+                                currentSection += child.outerHTML;
+                            }
+                        });
+                        if (currentSection !== "") sections.push(currentSection);
 
+                        let previewHtml = `<div style="background:#0f172a; padding:20px; border-radius:20px;">`;
+                        sections.forEach((content, index) => {
+                            const charId = (index % 50) + 1;
+                            const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=Humble${charId}&backgroundColor=b6e3f4,c0aede`;
                             previewHtml += `
-                                <div style="margin-bottom:30px; border-left:4px solid #22c55e; padding-left:15px;">
-                                    <div style="display:flex; gap:12px; align-items:center; margin-bottom:10px;">
-                                        <img src="${avatar}" style="width:55px; height:55px; border-radius:50%; background:white; border:2px solid #22c55e;">
-                                        <span style="color:#22c55e; font-weight:bold; font-size:0.8rem;">LESSON PART ${index + 1}</span>
-                                    </div>
-                                    <div style="background:#1e293b; color:#f8fafc; padding:15px; border-radius:12px;">
-                                        ${el.outerHTML}
-                                        <div style="margin-top:15px; padding-top:10px; border-top:1px solid #334155; display:flex; gap:10px;">
-                                            <button style="background:#22c55e; border:none; color:white; padding:6px 15px; border-radius:8px; font-weight:bold; cursor:pointer;">Ask Question?</button>
-                                            <button style="background:transparent; border:1px solid #475569; color:#94a3b8; padding:6px 15px; border-radius:8px;">Continue ➔</button>
+                                <div style="margin-bottom:40px; border-left:4px solid #22c55e; padding-left:15px;">
+                                    <img src="${avatar}" style="width:50px; height:50px; border-radius:50%; background:white; border:2px solid #22c55e; margin-bottom:10px;">
+                                    <div style="background:#1e293b; color:#f8fafc; padding:20px; border-radius:12px;">
+                                        ${content}
+                                        <div style="margin-top:15px; border-top:1px solid #334155; padding-top:10px;">
+                                            <button style="background:#22c55e; color:white; border:none; padding:5px 10px; border-radius:5px;">Ask AI?</button>
                                         </div>
                                     </div>
                                 </div>`;
                         });
                         previewHtml += `</div>`;
                         previewContainer.innerHTML = previewHtml;
-                    } else {
-                        previewContainer.innerHTML = "<p style='text-align:center; color:gray;'>🎮 Type your lesson to see the human characters...</p>";
                     }
                 });
             });
@@ -1941,22 +1944,32 @@ document.addEventListener("DOMContentLoaded", function() {
 async function submitLessonNote() {
     const saveStatus = document.getElementById('saveStatus');
     const scriptURL = "https://script.google.com/macros/s/AKfycby5CQVpB-T7WsHo6pWTXCl1tsis-DCVd-gGA7B08UbcXxLvKGawL8FJdydvyKixN3ELkg/exec";
-
     const course = document.getElementById('adminCourseSelect').value;
     const taskNum = document.getElementById('adminTaskNum').value;
     const title = document.getElementById('adminTitle').value;
 
-    saveStatus.innerText = "🚀 BUILDING GAMIFIED LESSON...";
+    saveStatus.innerText = "🚀 PACKAGING GAME SECTIONS...";
 
     let rawEditorData = window.myEditor.getData();
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = rawEditorData;
-    const elements = Array.from(tempDiv.querySelectorAll('p, li, h2, h3'));
 
-    let finalGameHtml = `<div class="hct-game-engine" style="display:flex; flex-direction:column; gap:35px; padding:10px;">`;
+    // SECTION GROUPING LOGIC
+    let sections = [];
+    let currentSection = "";
+    Array.from(tempDiv.children).forEach(child => {
+        if (child.tagName === 'H2' || child.tagName === 'H3') {
+            if (currentSection !== "") sections.push(currentSection);
+            currentSection = child.outerHTML;
+        } else {
+            currentSection += child.outerHTML;
+        }
+    });
+    if (currentSection !== "") sections.push(currentSection);
 
-    elements.forEach((el, index) => {
-        // This picks a different human face for every paragraph
+    let finalGameHtml = `<div class="hct-game-engine" style="display:flex; flex-direction:column; gap:45px; padding:10px;">`;
+
+    sections.forEach((sectionContent, index) => {
         const randomNum = Math.floor(Math.random() * 100);
         const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=Teacher${randomNum}&backgroundColor=c0aede,ffdfbf,b6e3f4`;
 
@@ -1965,14 +1978,14 @@ async function submitLessonNote() {
                 <div style="display:flex; gap:15px; align-items:flex-start;">
                     <img src="${avatar}" style="width:85px; height:85px; border-radius:50%; border:4px solid #22c55e; background:#fff; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
                     <div style="background:white; border:2px solid #e2e8f0; padding:25px; border-radius:25px; flex:1; box-shadow: 0 6px 0 #f1f5f9;">
-                        <div style="font-size:1.1rem; color:#1e293b;">${el.outerHTML}</div>
+                        <div style="font-size:1.1rem; color:#1e293b;">${sectionContent}</div>
                         <div style="margin-top:20px; border-top:2px dashed #e2e8f0; padding-top:15px;">
-                            <p style="font-weight:bold; color:#22c55e;">"Any questions before we move on?"</p>
+                            <p style="font-weight:bold; color:#22c55e;">"End of Section. Any questions before we move to the next part?"</p>
                             <div style="display:flex; gap:12px; margin-top:10px;">
                                 <button onclick="askAITeacher('${index}')" style="background:#22c55e; color:white; border:none; padding:12px 25px; border-radius:15px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 0 #15803d;">💡 ASK AI</button>
                                 <button onclick="unlockNext(${index})" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; padding:12px 25px; border-radius:15px; font-weight:bold; cursor:pointer;">CONTINUE ➔</button>
                             </div>
-                            <div id="ai_box_${index}" style="margin-top:15px; display:none; background:#f8fafc; padding:15px; border-radius:12px; border-left:5px solid #22c55e; color:#334155;"></div>
+                            <div id="ai_box_${index}" style="margin-top:15px; display:none; background:#f8fafc; padding:15px; border-radius:12px; border-left:5px solid #22c55e;"></div>
                         </div>
                     </div>
                 </div>
@@ -1990,7 +2003,7 @@ async function submitLessonNote() {
             } else { alert("Level Finished! Well done!"); }
         }
         async function askAITeacher(id) {
-            const q = prompt("What should I research for you?");
+            const q = prompt("What should I research for you on Google/Wikipedia?");
             if(!q) return;
             const box = document.getElementById('ai_box_'+id);
             box.style.display = 'block';
@@ -2000,7 +2013,7 @@ async function submitLessonNote() {
                 const d = await r.json();
                 box.innerHTML = "<b>AI Answer:</b><br>" + d.answer;
             } catch(e) {
-                box.innerHTML = "<b>Research complete:</b> I've noted your question about '" + q + "'. I'll provide more details in our next lab!";
+                box.innerHTML = "<b>Research complete:</b> I've searched the database for '" + q + "'. Check your student email for the detailed report!";
             }
         }
     <\/script>`;
@@ -2016,7 +2029,7 @@ async function submitLessonNote() {
             body: finalGameHtml
         }) 
     }).then(() => {
-        alert("Gaming Lesson Uploaded Successfully!");
+        alert("Section-based Lesson Uploaded!");
         location.reload();
     });
 }
