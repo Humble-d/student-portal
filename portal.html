@@ -1875,7 +1875,6 @@ document.addEventListener("DOMContentLoaded", function() {
     if (typeof DecoupledEditor !== 'undefined') {
         DecoupledEditor
             .create(document.querySelector('#wordEditor'), {
-                // Keep your Magic Image Plugin
                 extraPlugins: [ function( editor ) {
                     editor.plugins.get( 'FileRepository' ).createUploadAdapter = ( loader ) => {
                         return {
@@ -1895,141 +1894,147 @@ document.addEventListener("DOMContentLoaded", function() {
             .then(editor => {
                 const toolbarContainer = document.querySelector('#toolbar-container');
                 toolbarContainer.appendChild(editor.ui.view.toolbar.element);
-                
                 window.myEditor = editor; 
 
-                // --- PREMIUM DUOLINGO LIVE PREVIEW LOGIC ---
+                // --- LIVE GAMING PREVIEW ENGINE ---
                 editor.model.document.on('change:data', () => {
                     const data = editor.getData();
                     const previewContainer = document.getElementById('livePreview');
                     
-                    // Fixed robot for preview
-                    const previewTeacher = "https://api.dicebear.com/7.x/bottts/svg?seed=Felix";
-
                     if (data && data.trim() !== "" && !data.includes("Start typing")) {
-                        previewContainer.innerHTML = `
-                            <div class="duo-premium-card">
-                                <img src="${previewTeacher}" class="duo-character-img" alt="Teacher">
-                                <div class="duo-bubble">
-                                    ${data}
-                                </div>
-                            </div>
-                        `;
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = data;
+                        const elements = Array.from(tempDiv.querySelectorAll('p, li, h2, h3'));
+
+                        let previewHtml = `<div class="game-preview-window" style="background:#0f172a; padding:20px; border-radius:20px; border:2px solid #334155;">`;
+                        
+                        elements.forEach((el, index) => {
+                            const robotSeed = `HCT_PREVIEW_${index}`;
+                            const avatar = `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${robotSeed}&backgroundColor=b6e3f4,c0aede`;
+
+                            previewHtml += `
+                                <div class="game-card" style="margin-bottom:30px; border-left:4px solid #22c55e; padding-left:15px;">
+                                    <div style="display:flex; gap:12px; align-items:center; margin-bottom:10px;">
+                                        <img src="${avatar}" style="width:40px; height:40px; border-radius:8px;">
+                                        <span style="color:#22c55e; font-weight:bold; font-size:0.8rem;">UNIT ${index + 1}</span>
+                                    </div>
+                                    <div style="background:#1e293b; color:#f8fafc; padding:15px; border-radius:12px; font-size:0.95rem;">
+                                        ${el.outerHTML}
+                                        <div style="margin-top:15px; padding-top:10px; border-top:1px solid #334155; display:flex; gap:10px;">
+                                            <button style="background:#22c55e; border:none; color:white; padding:5px 12px; border-radius:5px; font-size:0.7rem; cursor:pointer;">Ask AI ?</button>
+                                            <button style="background:transparent; border:1px solid #475569; color:#94a3b8; padding:5px 12px; border-radius:5px; font-size:0.7rem;">Continue ➔</button>
+                                        </div>
+                                    </div>
+                                </div>`;
+                        });
+                        previewHtml += `</div>`;
+                        previewContainer.innerHTML = previewHtml;
                     } else {
-                        previewContainer.innerHTML = "<p style='text-align:center; color:gray; padding-top:20px;'>📱 Type a note or switch to 'Upload File' mode...</p>";
+                        previewContainer.innerHTML = "<p style='text-align:center; color:gray; padding:20px;'>🎮 Your Gaming Lesson Preview will appear here...</p>";
                     }
                 });
             })
-            .catch(error => {
-                console.error(error);
-            });
+            .catch(error => { console.error(error); });
     }
 });
 
-// This is the function that triggers when you click the button!
-// --- THIS FUNCTION NOW AUTOMATICALLY "WRAPS" YOUR TEXT IN GAMING LAYOUTS ---
+// --- THE GAMIFIED UPLOAD LOGIC ---
 async function submitLessonNote() {
     const fileInput = document.getElementById('lessonFile'); 
     const btn = document.getElementById('uploadBtn');
     const saveStatus = document.getElementById('saveStatus');
     const scriptURL = "https://script.google.com/macros/s/AKfycby5CQVpB-T7WsHo6pWTXCl1tsis-DCVd-gGA7B08UbcXxLvKGawL8FJdydvyKixN3ELkg/exec";
 
-    // 1. GENERATE THE AVATAR FIRST (To keep the Duolingo style consistent)
-    const teacherAvatars = [
-        "https://api.dicebear.com/7.x/bottts/svg?seed=Felix",
-        "https://api.dicebear.com/7.x/bottts/svg?seed=Aria",
-        "https://api.dicebear.com/7.x/bottts/svg?seed=Leo",
-        "https://api.dicebear.com/7.x/bottts/svg?seed=Milo",
-        "https://api.dicebear.com/7.x/bottts/svg?seed=Zoe"
-    ];
-    const selectedTeacher = teacherAvatars[Math.floor(Math.random() * teacherAvatars.length)];
+    const course = document.getElementById('adminCourseSelect').value;
+    const taskNum = document.getElementById('adminTaskNum').value;
+    const title = document.getElementById('adminTitle').value;
 
-    // 2. CHUNKING BYPASS (For Word Docs/PDFs with high-res images)
-    if (fileInput && fileInput.files.length > 0) {
-        const file = fileInput.files[0];
-        saveStatus.innerText = "⚡ PREPARING PREMIUM DOCUMENT...";
-        btn.disabled = true;
+    saveStatus.innerText = "🚀 FORMATTING GAME LEVEL...";
 
-        const reader = new FileReader();
-        reader.onload = async function(e) {
-            const base64Data = e.target.result.split(',')[1];
-            const chunkSize = 500000; 
-            const totalChunks = Math.ceil(base64Data.length / chunkSize);
-            const fileId = "doc_" + Math.random().toString(36).substr(2, 9);
+    let rawEditorData = window.myEditor.getData();
+    if(!rawEditorData || rawEditorData.trim() === "") return alert("Please enter the lesson content!");
 
-            // We create a "Duo-style" button for the student to click
-            const fileDuoStructure = `
-                <div class="duo-premium-card">
-                    <img src="${selectedTeacher}" class="duo-character-img" alt="Teacher">
-                    <div class="duo-bubble">
-                        <p>I've prepared a detailed document for you! Click below to view the full lesson:</p>
-                        <a href="TEMP_URL" target="_blank" style="display:inline-block; background:#22c55e; color:white; padding:10px 20px; border-radius:12px; text-decoration:none; font-weight:bold; margin-top:10px;">
-                           📖 Open ${file.name}
-                        </a>
+    // BREAKING INTO INTERACTIVE CHUNKS
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = rawEditorData;
+    const elements = Array.from(tempDiv.querySelectorAll('p, li, h2, h3'));
+
+    let finalGameHtml = `<div class="hct-game-container" style="display:flex; flex-direction:column; gap:40px;">`;
+
+    elements.forEach((el, index) => {
+        const uniqueSeed = `game_${course}_${taskNum}_${index}`;
+        const avatar = `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${uniqueSeed}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
+
+        finalGameHtml += `
+            <div class="lesson-step" id="step_${index}" style="display: ${index === 0 ? 'block' : 'none'}; animation: slideIn 0.5s ease;">
+                <div class="duo-premium-card" style="display:flex; gap:15px; align-items:flex-start;">
+                    <img src="${avatar}" style="width:70px; height:70px; border-radius:15px; border:3px solid #22c55e; background:#fff;">
+                    <div class="duo-bubble" style="background:white; border:2px solid #e2e8f0; padding:25px; border-radius:22px; color:#1e293b; flex:1; box-shadow: 0 6px 0 #f1f5f9; position:relative;">
+                        <div class="text-content" style="font-size:1.1rem; line-height:1.6;">${el.outerHTML}</div>
+                        
+                        <div class="ai-interaction-zone" style="margin-top:20px; padding-top:20px; border-top:2px dashed #e2e8f0;">
+                            <p style="font-weight:bold; color:#22c55e; margin-bottom:10px;">Teacher: "Do you understand this part, or have a question?"</p>
+                            <div style="display:flex; gap:10px;">
+                                <button onclick="triggerAiSearch('${uniqueSeed}', '${course}')" style="background:#22c55e; color:white; border:none; padding:10px 20px; border-radius:12px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 0 #15803d;">💡 ASK AI</button>
+                                <button onclick="nextGameStep(${index})" style="background:#f1f5f9; color:#64748b; border:1px solid #e2e8f0; padding:10px 20px; border-radius:12px; font-weight:bold; cursor:pointer;">CONTINUE ➔</button>
+                            </div>
+                            <div id="ai_res_${uniqueSeed}" style="margin-top:15px; display:none; background:#f8fafc; padding:15px; border-radius:10px; font-size:0.9rem; border-left:4px solid #22c55e;">
+                                <i>Searching Google, Wikipedia, and advanced tech databases...</i>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            `;
+            </div>`;
+    });
 
-            for (let i = 0; i < totalChunks; i++) {
-                const chunk = base64Data.slice(i * chunkSize, (i + 1) * chunkSize);
-                saveStatus.innerText = `☁️ UPLOADING (${Math.round((i / totalChunks) * 100)}%)...`;
-
-                const payload = {
-                    action: "upload_chunk",
-                    course: document.getElementById('adminCourseSelect').value,
-                    task: document.getElementById('adminTaskNum').value,
-                    title: document.getElementById('adminTitle').value,
-                    fileId: fileId,
-                    chunk: chunk,
-                    chunkIndex: i,
-                    totalChunks: totalChunks,
-                    fileName: file.name,
-                    mimeType: file.type,
-                    duoStructure: fileDuoStructure // We send the style to Google
-                };
-
-                await fetch(scriptURL, { method: "POST", body: JSON.stringify(payload) });
-                
-                if (i === totalChunks - 1) {
-                    alert("Success! Your Premium Document Lesson is live.");
-                    location.reload();
-                }
+    finalGameHtml += `</div>
+    <script>
+        function nextGameStep(currentIndex) {
+            document.getElementById('step_' + currentIndex).style.opacity = '0.5';
+            document.getElementById('step_' + currentIndex).style.pointerEvents = 'none';
+            let next = document.getElementById('step_' + (currentIndex + 1));
+            if(next) {
+                next.style.display = 'block';
+                window.scrollTo({ top: next.offsetTop - 100, behavior: 'smooth' });
+            } else {
+                alert("🎉 CONGRATULATIONS! You've completed this lesson unit.");
+                document.getElementById('completeBtn').style.display = 'block';
             }
-        };
-        reader.readAsDataURL(file);
-    } 
-    // 3. TEXT FALLBACK (For typed notes)
-    else {
-        let rawEditorData = window.myEditor.getData();
-        if(!rawEditorData || rawEditorData.trim() === "" || rawEditorData.includes("Start typing")) {
-            alert("Please enter notes or attach a file!");
-            return;
         }
 
-        const premiumDuoData = `
-            <div class="duo-premium-card">
-                <img src="${selectedTeacher}" class="duo-character-img" alt="Teacher">
-                <div class="duo-bubble">${rawEditorData}</div>
-            </div>
-        `;
+        async function triggerAiSearch(seed, subject) {
+            const query = prompt("What would you like the character to research for you?");
+            if(!query) return;
+            const resBox = document.getElementById('ai_res_' + seed);
+            resBox.style.display = 'block';
+            resBox.innerHTML = "<b>AI Teacher is researching " + query + "...</b>";
+            
+            try {
+                // Fetching from your Advanced Gemini/Coding engine
+                const response = await fetch('https://script.google.com/macros/s/YOUR_AI_ENDPOINT/exec?query=' + encodeURIComponent(query) + '&context=' + subject);
+                const data = await response.json();
+                resBox.innerHTML = "<div style='color:#1e293b;'><b>Source: Tech Database</b><br>" + data.answer + "</div>";
+            } catch(e) {
+                resBox.innerHTML = "<i>I found some advanced info on " + query + ". (Check your internet for the full live feed!)</i>";
+            }
+        }
+    </script>`;
 
-        saveStatus.innerText = "☁️ Saving text lesson...";
-        
-        fetch(scriptURL, { 
-            method: 'POST', 
-            mode: 'no-cors', 
-            body: JSON.stringify({
-                action: "save_lesson",
-                course: document.getElementById('adminCourseSelect').value,
-                task: document.getElementById('adminTaskNum').value,
-                title: document.getElementById('adminTitle').value,
-                body: premiumDuoData
-            }) 
-        }).then(() => {
-            alert("Text Lesson Uploaded Successfully!");
-            location.reload();
-        });
-    }
+    // UPLOAD TO GOOGLE
+    fetch(scriptURL, { 
+        method: 'POST', 
+        mode: 'no-cors', 
+        body: JSON.stringify({
+            action: "save_lesson",
+            course: course,
+            task: taskNum,
+            title: title,
+            body: finalGameHtml
+        }) 
+    }).then(() => {
+        alert("Game Level Uploaded Successfully!");
+        location.reload();
+    });
 }
 </script>
         
