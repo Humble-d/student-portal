@@ -712,185 +712,136 @@ function loadTaskBar(courseName) {
 
     <div id="saveStatus" style="margin-top: 10px; font-weight: bold; color: #f39c12;">☁️ Waiting for input...</div>
 </div> 
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    if (typeof DecoupledEditor !== 'undefined') {
-        DecoupledEditor
-            .create(document.querySelector('#wordEditor'), {
-                extraPlugins: [ function( editor ) {
-                    editor.plugins.get( 'FileRepository' ).createUploadAdapter = ( loader ) => {
-                        return {
-                            upload() {
-                                return loader.file.then( file => new Promise( ( resolve, reject ) => {
-                                    const reader = new FileReader();
-                                    reader.onload = () => resolve( { default: reader.result } );
-                                    reader.onerror = error => reject( error );
-                                    reader.readAsDataURL( file );
-                                } ) );
-                            },
-                            abort() { }
-                        };
-                    };
-                } ]
-            })
-            .then(editor => {
-                const toolbarContainer = document.querySelector('#toolbar-container');
-                toolbarContainer.appendChild(editor.ui.view.toolbar.element);
-                window.myEditor = editor; 
+<script>// --- 1. CORE CONFIGURATION ---
+// --- 1. CORE CONFIGURATION ---
+const scriptURL = "https://script.google.com/macros/s/AKfycby5CQVpB-T7WsHo6pWTXCl1tsis-DCVd-gGA7B08UbcXxLvKGawL8FJdydvyKixN3ELkg/exec"; 
 
-                // --- 1. PREMIUM LIVE PREVIEW WITH PARAGRAPH BREAKDOWN ---
-                editor.model.document.on('change:data', () => {
-                    const data = editor.getData();
-                    const previewContainer = document.getElementById('livePreview');
-                    
-                    if (data && data.trim() !== "" && !data.includes("Start typing")) {
-                        // Create a temporary div to parse the paragraphs
-                        const tempDiv = document.createElement('div');
-                        tempDiv.innerHTML = data;
-                        const paragraphs = Array.from(tempDiv.querySelectorAll('p, li, h2, h3'));
-
-                        let fullPreviewHtml = "";
-                        paragraphs.forEach((p, index) => {
-                            if(p.innerText.trim() === "") return;
-                            
-                            // Generate a unique robot for each paragraph based on its index
-                            const robotSeed = `preview_${index}_${Date.now()}`;
-                            const avatar = `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${robotSeed}&backgroundColor=b6e3f4,c0aede,d1d4f9`;
-
-                            fullPreviewHtml += `
-                                <div class="duo-premium-card" style="display:flex; gap:15px; margin-bottom:20px; animation: fadeInUp 0.4s ease;">
-                                    <img src="${avatar}" class="duo-character-img" style="width:50px; height:50px; border-radius:12px; border:2px solid #22c55e;">
-                                    <div class="duo-bubble" style="background:white; color:#333; padding:15px; border-radius:15px; border-bottom-left-radius:2px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); flex:1;">
-                                        ${p.outerHTML}
-                                    </div>
-                                </div>`;
-                        });
-                        previewContainer.innerHTML = fullPreviewHtml;
-                    } else {
-                        previewContainer.innerHTML = "<p style='text-align:center; color:gray; padding-top:20px;'>📱 Start typing to see the AI Teachers appear...</p>";
-                    }
-                });
-            })
-            .catch(error => { console.error(error); });
+// --- 2. STARTUP & LOCKOUT LOGIC ---
+window.onload = function() {
+    const savedName = localStorage.getItem('hct_user_name') || "Humble Student";
+    if(document.getElementById('studentNameDisplay')) {
+        document.getElementById('studentNameDisplay').innerText = savedName;
     }
-});
 
-// --- 2. THE PREMIUM UPLOAD ENGINE ---
-async function submitLessonNote() {
-    const fileInput = document.getElementById('lessonFile'); 
-    const btn = document.getElementById('uploadBtn');
-    const saveStatus = document.getElementById('saveStatus');
-    const scriptURL = "https://script.google.com/macros/s/AKfycby5CQVpB-T7WsHo6pWTXCl1tsis-DCVd-gGA7B08UbcXxLvKGawL8FJdydvyKixN3ELkg/exec";
+    // Robot Greeting
+    const teacherBubble = document.getElementById('teacherBubble');
+    if(teacherBubble) {
+        teacherBubble.style.display = 'block';
+        document.getElementById('teacherSpeech').innerText = `Welcome back, ${savedName}! Ready to dominate?`;
+        setTimeout(() => { teacherBubble.style.display = 'none'; }, 7000);
+    }
 
-    const course = document.getElementById('adminCourseSelect').value;
-    const taskNum = document.getElementById('adminTaskNum').value;
-    const title = document.getElementById('adminTitle').value;
+    checkAccessLock();
+    // Initialize the map (Default to Cyber)
+    loadTaskBar("cyber"); 
+};
 
-    if (!title) return alert("Please enter a Lesson Title!");
+// --- 3. UNLOCK PORTAL FIX (Matches your validateAccess() button) ---
+async function validateAccess() {
+    const codeInput = document.getElementById('studentAccessCode').value;
+    const btn = document.querySelector('.unlock-btn');
+    
+    if(!codeInput) return alert("Please enter the renewal code first!");
 
-    btn.disabled = true;
-    saveStatus.style.display = 'block';
+    btn.innerText = "VERIFYING...";
+    btn.style.opacity = "0.7";
+    
+    try {
+        // Checking the Google Script logic for the verification code
+        const response = await fetch(`${scriptURL}?action=verifyCode&code=${encodeURIComponent(codeInput)}`);
+        const data = await response.json();
 
-    // CASE A: FILE UPLOAD (PDF/DOCX)
-    if (fileInput && fileInput.files.length > 0) {
-        const file = fileInput.files[0];
-        saveStatus.innerText = "⚡ PREPARING PREMIUM DOCUMENT...";
-
-        const reader = new FileReader();
-        reader.onload = async function(e) {
-            const base64Data = e.target.result.split(',')[1];
-            const chunkSize = 500000; 
-            const totalChunks = Math.ceil(base64Data.length / chunkSize);
-            const fileId = "doc_" + Math.random().toString(36).substr(2, 9);
-            const avatar = `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=file_${taskNum}&backgroundColor=ffd5dc`;
-
-            const fileDuoStructure = `
-                <div class="duo-premium-card" style="display:flex; gap:20px; background:#f0fdf4; padding:20px; border-radius:20px; border:2px solid #22c55e;">
-                    <img src="${avatar}" style="width:70px; height:70px; border-radius:15px;">
-                    <div>
-                        <h3 style="color:#166534; margin:0;">New Study Material</h3>
-                        <p style="color:#374151; margin:5px 0 15px;">I've uploaded a professional guide for this task.</p>
-                        <a href="TEMP_URL" target="_blank" style="display:inline-block; background:#22c55e; color:white; padding:12px 20px; border-radius:12px; text-decoration:none; font-weight:bold; box-shadow: 0 4px 0 #15803d;">
-                           📖 VIEW DOCUMENT: ${file.name}
-                        </a>
-                    </div>
-                </div>`;
-
-            for (let i = 0; i < totalChunks; i++) {
-                const chunk = base64Data.slice(i * chunkSize, (i + 1) * chunkSize);
-                saveStatus.innerText = `☁️ UPLOADING DOCUMENT (${Math.round((i / totalChunks) * 100)}%)...`;
-
-                await fetch(scriptURL, { method: "POST", body: JSON.stringify({
-                    action: "upload_chunk",
-                    course: course,
-                    task: taskNum,
-                    title: title,
-                    fileId: fileId,
-                    chunk: chunk,
-                    chunkIndex: i,
-                    totalChunks: totalChunks,
-                    fileName: file.name,
-                    mimeType: file.type,
-                    duoStructure: fileDuoStructure
-                })});
-                
-                if (i === totalChunks - 1) {
-                    alert("Success! Document Lesson Published.");
-                    location.reload();
-                }
-            }
-        };
-        reader.readAsDataURL(file);
-    } 
-    // CASE B: TEXT LESSON (WITH 100+ RANDOM CHARACTERS PER PARAGRAPH)
-    else {
-        let rawEditorData = window.myEditor.getData();
-        if(!rawEditorData || rawEditorData.trim() === "") return alert("Please enter notes!");
-
-        saveStatus.innerText = "🌀 GENERATING PREMIUM CHARACTER TEAM...";
-
-        // Split text into paragraphs to assign different characters
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = rawEditorData;
-        const elements = Array.from(tempDiv.querySelectorAll('p, li, h2, h3'));
-
-        let finalPremiumHtml = `<div class="lesson-set-container">`;
-
-        elements.forEach((el, index) => {
-            if(el.innerText.trim() === "") return;
-            
-            // Generate a unique robot from 1,000s of possibilities using DiceBear
-            const uniqueSeed = `hct_${course}_${taskNum}_part_${index}`;
-            const character = `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${uniqueSeed}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
-
-            finalPremiumHtml += `
-                <div class="duo-premium-card" style="display:flex; gap:20px; margin-bottom:25px; align-items:flex-start;">
-                    <div style="text-align:center;">
-                        <img src="${character}" style="width:65px; height:65px; border-radius:15px; border:2px solid #22c55e; background:white;">
-                        <p style="font-size:10px; font-weight:bold; color:#22c55e; margin-top:5px;">AI BOT #${index + 1}</p>
-                    </div>
-                    <div class="duo-bubble" style="background:white; border:2px solid #e5e5e5; padding:20px; border-radius:18px; color:#1f2937; flex:1; box-shadow: 0 4px 0 #e5e5e5; position:relative;">
-                        ${el.outerHTML}
-                    </div>
-                </div>`;
-        });
-
-        finalPremiumHtml += `</div>`;
-
-        fetch(scriptURL, { 
-            method: 'POST', 
-            mode: 'no-cors', 
-            body: JSON.stringify({
-                action: "save_lesson",
-                course: course,
-                task: taskNum,
-                title: title,
-                body: finalPremiumHtml
-            }) 
-        }).then(() => {
-            alert("Success! Multi-Character Lesson Published.");
+        if (data.result === "success") {
+            localStorage.setItem('hct_access_status', 'unlocked');
+            alert("✅ PORTAL UNLOCKED! Welcome to Premium Access.");
             location.reload();
-        });
+        } else {
+            alert("❌ Invalid Code. Please contact Director Emmanuel.");
+        }
+    } catch (e) {
+        alert("Connection Error. Please check your internet.");
+    } finally {
+        btn.innerText = "Unlock Portal";
+        btn.style.opacity = "1";
+    }
+}
+
+// --- 4. LOCKOUT CHECK ---
+function checkAccessLock() {
+    let keys = Object.keys(localStorage);
+    let completedCount = keys.filter(key => key.startsWith('hct_task_done_')).length;
+    const isUnlocked = localStorage.getItem('hct_access_status') === 'unlocked';
+
+    // Gate appears if they hit the limit without paying
+    if (completedCount >= 8 && !isUnlocked) {
+        if(document.getElementById('accessGate')) document.getElementById('accessGate').style.display = 'flex';
+        if(document.getElementById('classroomOverlay')) document.getElementById('classroomOverlay').style.display = 'none';
+    }
+}
+
+// --- 5. ENTER CLASS LOGIC (Synchronized) ---
+async function loadSpecificTask(courseName, taskNum) {
+    const modal = document.getElementById('taskModal');
+    const body = document.getElementById('modalTaskBody');
+    const title = document.getElementById('modalTaskTitle');
+    const completeBtn = document.getElementById('completeBtn');
+
+    modal.style.display = 'flex';
+    body.innerHTML = "<div style='text-align:center; padding:30px; color:#22c55e;'>🌀 <br> Mr. Humble is fetching your premium lesson...</div>";
+
+    try {
+        const response = await fetch(`${scriptURL}?action=getLesson&course=${courseName.toLowerCase()}&task=${taskNum}`);
+        const data = await response.json();
+
+        if (data && data.body) {
+            title.innerText = data.title || `Task #${taskNum}`;
+            body.innerHTML = data.body; // Displays the premium robot paragraph breakdown
+        } else {
+            body.innerHTML = "<div style='text-align:center;'><p>🚀 Lesson coming soon! Mr. Humble is still cooking this note.</p></div>";
+        }
+    } catch (err) {
+        body.innerHTML = "<p>⚠️ Error connecting to the portal. Check your internet.</p>";
+    }
+
+    completeBtn.onclick = () => {
+        localStorage.setItem(`hct_task_done_${courseName}_${taskNum}`, "true");
+        modal.style.display = 'none';
+        location.reload(); 
+    };
+}
+
+// --- 6. MAP GENERATOR ---
+function loadTaskBar(courseName) {
+    const container = document.getElementById('taskBar');
+    if (!container) return;
+    container.innerHTML = "";
+    
+    for (let i = 1; i <= 50; i++) {
+        const isDone = localStorage.getItem(`hct_task_done_${courseName}_${i}`) === "true";
+        const status = isDone ? "completed" : (i === 1 ? "unlocked" : "locked");
+        
+        const node = document.createElement('div');
+        node.className = `task-node ${status}`;
+        node.innerHTML = i % 2 === 0 ? `📝<br>${i}` : `📖<br>${i}`;
+        
+        if (status !== "locked") {
+            node.onclick = () => loadSpecificTask(courseName, i);
+        }
+        container.appendChild(node);
+    }
+}
+
+// --- 7. RENEWAL SYSTEM (Matches your requestRenewalCode() button) ---
+function requestRenewalCode() {
+    const name = document.getElementById('regStudentName').value;
+    if(!name) return alert("Enter your registered name.");
+    
+    // Redirect to Director Emmanuel's WhatsApp
+    const msg = encodeURIComponent(`Hello Director Emmanuel, I am ${name}. I need a renewal code for my portal.`);
+    window.open(`https://wa.me/message/5636MVP3GLY7A1?text=${msg}`, '_blank');
+    
+    if(document.getElementById('codeEntryArea')) {
+        document.getElementById('codeEntryArea').style.display = 'block';
     }
 }
 </script>
