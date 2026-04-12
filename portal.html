@@ -1873,81 +1873,90 @@ function initWordProcessor() {
 <script>
 // --- GLOBAL CONFIG ---
 const PASS_MARK = 80;
-const EXERCISE_TIME_LIMIT = 18 * 60; // 18 minutes in seconds
+const EXERCISE_TIME_LIMIT = 18 * 60; 
 const scriptURL = "https://script.google.com/macros/s/AKfycby5CQVpB-T7WsHo6pWTXCl1tsis-DCVd-gGA7B08UbcXxLvKGawL8FJdydvyKixN3ELkg/exec";
 
-// 1. EDITOR INITIALIZATION & PREVIEW
+// 1. EDITOR & LIVE PREVIEW
 document.addEventListener("DOMContentLoaded", function() {
     if (typeof DecoupledEditor !== 'undefined') {
-        DecoupledEditor
-            .create(document.querySelector('#wordEditor'), {
-                extraPlugins: [ function( editor ) {
-                    editor.plugins.get( 'FileRepository' ).createUploadAdapter = ( loader ) => {
-                        return {
-                            upload() {
-                                return loader.file.then( file => new Promise( ( resolve, reject ) => {
-                                    const reader = new FileReader();
-                                    reader.onload = () => resolve( { default: reader.result } );
-                                    reader.onerror = error => reject( error );
-                                    reader.readAsDataURL( file );
-                                } ) );
-                            },
-                            abort() { }
-                        };
+        DecoupledEditor.create(document.querySelector('#wordEditor'), {
+            extraPlugins: [ function( editor ) {
+                editor.plugins.get( 'FileRepository' ).createUploadAdapter = ( loader ) => {
+                    return {
+                        upload() {
+                            return loader.file.then( file => new Promise( ( resolve, reject ) => {
+                                const reader = new FileReader();
+                                reader.onload = () => resolve( { default: reader.result } );
+                                reader.onerror = error => reject( error );
+                                reader.readAsDataURL( file );
+                            } ) );
+                        },
+                        abort() { }
                     };
-                } ]
-            })
-            .then(editor => {
-                const toolbarContainer = document.querySelector('#toolbar-container');
-                if(toolbarContainer) toolbarContainer.appendChild(editor.ui.view.toolbar.element);
-                window.myEditor = editor; 
+                };
+            } ]
+        }).then(editor => {
+            const toolbarContainer = document.querySelector('#toolbar-container');
+            if(toolbarContainer) toolbarContainer.appendChild(editor.ui.view.toolbar.element);
+            window.myEditor = editor; 
 
-                editor.model.document.on('change:data', () => {
-                    const data = editor.getData();
-                    const previewContainer = document.getElementById('livePreview');
-                    if (previewContainer && data.trim() !== "") {
-                        const tempDiv = document.createElement('div');
-                        tempDiv.innerHTML = data;
-                        let sections = groupIntoHeadingSections(tempDiv);
-                        renderAvatarPreview(sections, previewContainer);
-                    }
-                });
+            editor.model.document.on('change:data', () => {
+                const data = editor.getData();
+                const previewContainer = document.getElementById('livePreview');
+                if (previewContainer && data.trim() !== "") {
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = data;
+                    let sections = groupIntoHeadingSections(tempDiv);
+                    renderGamePreview(sections, previewContainer);
+                }
             });
+        });
     }
 });
 
-// Helper to group by Headings only
+// Helper to group by Headings OR every 4 Paragraphs
 function groupIntoHeadingSections(container) {
     let sections = [];
     let currentSection = "";
+    let pCount = 0;
+
     Array.from(container.children).forEach(child => {
-        if (child.tagName === 'H2' || child.tagName === 'H3') {
+        if (child.tagName === 'H2' || child.tagName === 'H3' || pCount >= 4) {
             if (currentSection !== "") sections.push(currentSection);
             currentSection = child.outerHTML;
+            pCount = (child.tagName === 'P') ? 1 : 0;
         } else {
             currentSection += child.outerHTML;
+            if (child.tagName === 'P') pCount++;
         }
     });
     if (currentSection !== "") sections.push(currentSection);
     return sections;
 }
 
-function renderAvatarPreview(sections, container) {
-    let previewHtml = `<div style="background:#0f172a; padding:20px; border-radius:20px;">`;
+function renderGamePreview(sections, container) {
+    let previewHtml = `<div style="background:#0f172a; padding:20px; border-radius:20px; font-family: 'Segoe UI', sans-serif;">`;
     sections.forEach((content, index) => {
-        const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=Humble${index}&backgroundColor=b6e3f4,c0aede`;
+        const avatarSeed = `HumbleExpert${index}`;
+        const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeed}&backgroundColor=b6e3f4,c0aede&mouth=smile&eyes=happy`;
         previewHtml += `
-            <div style="margin-bottom:40px; border-left:4px solid #22c55e; padding-left:15px;">
-                <img src="${avatar}" style="width:50px; height:50px; border-radius:50%; background:white; border:2px solid #22c55e; margin-bottom:10px;">
-                <div style="background:#1e293b; color:#f8fafc; padding:20px; border-radius:12px;">${content}</div>
+            <div style="margin-bottom:30px; display:flex; gap:15px; align-items:flex-start;">
+                <img src="${avatar}" style="width:60px; height:60px; border-radius:50%; border:3px solid #22c55e; background:white;">
+                <div style="background:#1e293b; color:#f8fafc; padding:20px; border-radius:15px; border-bottom:4px solid #22c55e; flex:1;">
+                    ${content}
+                    <div style="margin-top:15px; color:#22c55e; font-weight:bold; font-size:0.9rem;">
+                        Teacher: "Do you understand this part, or do you have any questions?"
+                    </div>
+                </div>
             </div>`;
     });
     container.innerHTML = previewHtml + `</div>`;
 }
 
-// 2. LESSON NAVIGATION & CHARACTER LOGIC
+// 2. NAVIGATION & GAME LOGIC
 function unlockNext(i, totalSections) {
-    document.getElementById('step_'+i).style.opacity = '0.6';
+    document.getElementById('step_'+i).style.opacity = '0.5';
+    document.getElementById('step_'+i).style.pointerEvents = 'none';
     let next = document.getElementById('step_'+(i+1));
     
     if(next) { 
@@ -1959,104 +1968,75 @@ function unlockNext(i, totalSections) {
 }
 
 function triggerTransitionToExercise() {
-    const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=TeacherFinal&backgroundColor=b6e3f4`;
+    const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=HumbleMaster&backgroundColor=b6e3f4&top=shortHair&clothing=overall`;
     const transitionOverlay = document.createElement('div');
-    transitionOverlay.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.95); z-index:10000; display:flex; align-items:center; justify-content:center; padding:20px;";
+    transitionOverlay.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.98); z-index:10000; display:flex; align-items:center; justify-content:center; padding:20px;";
     transitionOverlay.innerHTML = `
-        <div style="background:white; padding:40px; border-radius:30px; text-align:center; max-width:500px; border:5px solid #22c55e;">
-            <img src="${avatar}" style="width:120px; height:120px; border-radius:50%; border:4px solid #22c55e; margin-bottom:20px;">
-            <h2 style="color:#1e293b;">Great Job, Scholar!</h2>
-            <p style="font-size:1.2rem; color:#475569; margin-bottom:25px;">You have finished the lecture. Press the button below to start your 18-minute challenge!</p>
-            <button onclick="startAutoExercise()" style="background:#22c55e; color:white; border:none; padding:15px 40px; border-radius:15px; font-size:1.2rem; font-weight:bold; cursor:pointer; box-shadow: 0 5px 0 #15803d;">🚀 GO TO EXERCISE</button>
+        <div style="background:white; padding:40px; border-radius:30px; text-align:center; max-width:500px; border:8px solid #22c55e; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
+            <img src="${avatar}" style="width:150px; height:150px; border-radius:50%; border:5px solid #22c55e; margin-bottom:20px; background:#f1f5f9;">
+            <h2 style="color:#1e293b; font-size:2rem;">Lecture Mastery Complete!</h2>
+            <p style="font-size:1.2rem; color:#475569; margin-bottom:25px;">Ready for the 18-minute challenge? 20 questions stand between you and the next level!</p>
+            <button onclick="startAutoExercise()" style="background:#22c55e; color:white; border:none; padding:18px 45px; border-radius:20px; font-size:1.3rem; font-weight:bold; cursor:pointer; box-shadow: 0 8px 0 #15803d; transition:0.2s;">ENTER BATTLE ➔</button>
         </div>
     `;
     document.body.appendChild(transitionOverlay);
 }
 
-// 3. EXERCISE & TIMER LOGIC
+// 3. EXERCISE GENERATION & RANKING
 async function startAutoExercise() {
-    window.location.href = "#exerciseSection"; 
-    initializeQuiz(20, EXERCISE_TIME_LIMIT);
+    // Redirect to the Exercise Task ID (Next Task)
+    const currentTask = parseInt(localStorage.getItem('activeTask'));
+    localStorage.setItem('activeTask', currentTask + 1);
+    window.location.reload(); 
+    // In your main task loader, add logic to trigger initializeQuiz(20, 1080) if task is Exercise
 }
 
-function initializeQuiz(qty, seconds) {
-    let timeLeft = seconds;
-    const timerDisplay = document.getElementById('quizTimer'); 
-    const countdown = setInterval(() => {
-        let mins = Math.floor(timeLeft / 60);
-        let secs = timeLeft % 60;
-        if(timerDisplay) timerDisplay.innerText = `Time Remaining: ${mins}:${secs < 10 ? '0' : ''}${secs}`;
-        if (timeLeft <= 0) {
-            clearInterval(countdown);
-            autoSubmitQuiz();
-        }
-        timeLeft--;
-    }, 1000);
-}
-
-// 4. SCORING & GATEKEEPING
 function processResults(score, total) {
     const percentage = (score / total) * 100;
     const currentCourse = localStorage.getItem('activeCourse');
     const currentTask = parseInt(localStorage.getItem('activeTask'));
 
     if (percentage >= PASS_MARK) {
-        // SUCCESS
         if(typeof uploadToRanking === 'function') uploadToRanking(score);
         localStorage.setItem(`${currentCourse}_task_${currentTask + 1}`, "unlocked");
-        alert(`🏆 Score: ${percentage}%! Next lesson unlocked.`);
+        alert(`🏆 MISSION SUCCESS! Score: ${percentage}%. Level Unlocked!`);
     } else {
-        // FAILURE
-        const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=HumbleCare&backgroundColor=ffdfbf`;
+        const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=HumbleCare&backgroundColor=ffdfbf&mouth=puke`;
         showFailureModal(avatar, percentage);
     }
 }
 
-function showFailureModal(img, pct) {
-    const modal = document.createElement('div');
-    modal.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:20000; display:flex; align-items:center; justify-content:center;";
-    modal.innerHTML = `
-        <div style="background:white; padding:30px; border-radius:20px; text-align:center; max-width:400px;">
-            <img src="${img}" style="width:100px; margin-bottom:15px;">
-            <h3 style="color:#e11d48;">Score: ${pct}%</h3>
-            <p>"Oh no! You didn't reach the 80% mastery mark. Please revisit your lecture notes again before you retake this exercise."</p>
-            <button onclick="location.reload()" style="margin-top:20px; background:#1e293b; color:white; padding:10px 20px; border-radius:10px; border:none;">Review Lecture</button>
-        </div>
-    `;
-    document.body.appendChild(modal);
-}
-
-// 5. MASTER UPLOAD FUNCTION
+// 4. ADMIN UPLOAD FUNCTION
 async function submitLessonNote() {
     const saveStatus = document.getElementById('saveStatus');
     const course = document.getElementById('adminCourseSelect').value;
     const taskNum = document.getElementById('adminTaskNum').value;
     const title = document.getElementById('adminTitle').value;
 
-    if (!window.myEditor) return alert("Editor not ready!");
+    if (!window.myEditor) return alert("Editor Error!");
     let rawEditorData = window.myEditor.getData();
 
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = rawEditorData;
     let sections = groupIntoHeadingSections(tempDiv);
 
-    let finalGameHtml = `<div class="hct-game-engine" style="display:flex; flex-direction:column; gap:45px; padding:10px;">`;
+    let finalGameHtml = `<div class="hct-game-engine" style="display:flex; flex-direction:column; gap:40px; background:#f8fafc; padding:20px; border-radius:20px;">`;
 
     sections.forEach((sectionContent, index) => {
-        const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=Teacher${index}&backgroundColor=c0aede,b6e3f4`;
+        const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=Guide${index}&backgroundColor=c0aede,b6e3f4&top=shaggyMullet&clothing=shirt`;
         finalGameHtml += `
-            <div class="step-card" id="step_${index}" style="display: ${index === 0 ? 'block' : 'none'};">
-                <div style="display:flex; gap:15px; align-items:flex-start;">
-                    <img src="${avatar}" style="width:85px; height:85px; border-radius:50%; border:4px solid #22c55e; background:#fff; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-                    <div style="background:white; border:2px solid #e2e8f0; padding:25px; border-radius:25px; flex:1; box-shadow: 0 6px 0 #f1f5f9;">
-                        <div style="font-size:1.1rem; color:#1e293b;">${sectionContent}</div>
-                        <div style="margin-top:20px; border-top:2px dashed #e2e8f0; padding-top:15px;">
-                            <p style="font-weight:bold; color:#22c55e;">"Any questions before we move to the next part?"</p>
-                            <div style="display:flex; gap:12px; margin-top:10px;">
-                                <button onclick="askAITeacher('${index}')" style="background:#22c55e; color:white; border:none; padding:12px 25px; border-radius:15px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 0 #15803d;">💡 ASK AI</button>
-                                <button onclick="unlockNext(${index}, ${sections.length})" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; padding:12px 25px; border-radius:15px; font-weight:bold; cursor:pointer;">CONTINUE ➔</button>
+            <div class="step-card" id="step_${index}" style="display: ${index === 0 ? 'block' : 'none'}; animation: slideIn 0.5s ease;">
+                <div style="display:flex; gap:20px; align-items:flex-start;">
+                    <img src="${avatar}" style="width:90px; height:90px; border-radius:50%; border:4px solid #22c55e; background:#fff; box-shadow: 0 8px 15px rgba(0,0,0,0.1);">
+                    <div style="background:white; border:2px solid #e2e8f0; padding:30px; border-radius:25px; flex:1; box-shadow: 0 10px 0 #f1f5f9; position:relative;">
+                        <div style="font-size:1.15rem; line-height:1.6; color:#1e293b;">${sectionContent}</div>
+                        <div style="margin-top:25px; border-top:2px dashed #cbd5e1; padding-top:20px; text-align:center;">
+                            <p style="font-style:italic; color:#64748b; margin-bottom:15px;">"Any questions before the next stage?"</p>
+                            <div style="display:flex; gap:15px; justify-content:center;">
+                                <button onclick="askAITeacher('${index}')" style="background:#22c55e; color:white; border:none; padding:12px 30px; border-radius:15px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 0 #15803d;">💡 ASK AI</button>
+                                <button onclick="unlockNext(${index}, ${sections.length})" style="background:#1e293b; color:white; border:none; padding:12px 30px; border-radius:15px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 0 #000;">CONTINUE ➔</button>
                             </div>
-                            <div id="ai_box_${index}" style="margin-top:15px; display:none; background:#f8fafc; padding:15px; border-radius:12px; border-left:5px solid #22c55e;"></div>
+                            <div id="ai_box_${index}" style="margin-top:20px; display:none; background:#f1f5f9; padding:20px; border-radius:15px; text-align:left; border-left:8px solid #22c55e; font-size:0.95rem;"></div>
                         </div>
                     </div>
                 </div>
@@ -2075,21 +2055,29 @@ async function submitLessonNote() {
         quizCount: 20
     };
     
-    saveStatus.innerText = "🚀 PACKAGING GAME...";
+    saveStatus.innerText = "🎮 BUILDING GAME WORLD...";
     fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(lessonData) })
     .then(() => {
-        alert("Lesson and 20-Question Exercise Prepared!");
+        alert("Success! Lesson and 20-Question Challenge is live!");
         location.reload();
     });
 }
 
 async function askAITeacher(id) {
-    const q = prompt("What should I explain for you?");
+    const q = prompt("Type your question for the Expert Teacher:");
     if(!q) return;
     const box = document.getElementById('ai_box_'+id);
     box.style.display = 'block';
-    box.innerHTML = "<b>Teacher is researching...</b>";
-    // Add your AI endpoint logic here
+    box.innerHTML = "<b>Searching GitHub, Google, and Cyber Vaults...</b>";
+    
+    // FETCH LOGIC
+    try {
+        const response = await fetch(scriptURL + "?action=ai_query&query=" + encodeURIComponent(q));
+        const data = await response.json();
+        box.innerHTML = `<b>AI Teacher:</b><br>${data.answer}`;
+    } catch(e) {
+        box.innerHTML = "<b>Connection busy.</b> My database suggests reviewing the documentation above while I reconnect!";
+    }
 }
 </script>
         
