@@ -1991,6 +1991,20 @@ function triggerExerciseTransition() {
     `;
     document.body.appendChild(modal);
 }
+
+
+
+document.getElementById('adminTrigger').addEventListener('click', function() {
+    const panel = document.getElementById('adminPanel');
+    if (panel.style.display === 'none') {
+        panel.style.display = 'block';
+        panel.scrollIntoView({ behavior: 'smooth' });
+    } else {
+        panel.style.display = 'none';
+    }
+});
+
+    
 </script>
         
 </div>
