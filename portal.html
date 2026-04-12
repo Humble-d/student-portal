@@ -1873,13 +1873,17 @@ function initWordProcessor() {
 <script>
 // --- CONFIGURATION ---
 const PASS_MARK = 80;
-const EXERCISE_TIME_LIMIT = 18 * 60; // 18 minutes in seconds
+const EXERCISE_TIME_LIMIT = 18 * 60; 
 const scriptURL = "https://script.google.com/macros/s/AKfycby5CQVpB-T7WsHo6pWTXCl1tsis-DCVd-gGA7B08UbcXxLvKGawL8FJdydvyKixN3ELkg/exec";
 
 document.addEventListener("DOMContentLoaded", function() {
-    if (typeof DecoupledEditor !== 'undefined') {
+    const editorElement = document.querySelector('#wordEditor');
+    const toolbarContainer = document.querySelector('#toolbar-container');
+
+    // FIX: Only initialize if the elements actually exist in your HTML
+    if (editorElement && typeof DecoupledEditor !== 'undefined') {
         DecoupledEditor
-            .create(document.querySelector('#wordEditor'), {
+            .create(editorElement, {
                 extraPlugins: [ function( editor ) {
                     editor.plugins.get( 'FileRepository' ).createUploadAdapter = ( loader ) => {
                         return {
@@ -1897,77 +1901,96 @@ document.addEventListener("DOMContentLoaded", function() {
                 } ]
             })
             .then(editor => {
-                const toolbarContainer = document.querySelector('#toolbar-container');
-                toolbarContainer.appendChild(editor.ui.view.toolbar.element);
+                if (toolbarContainer) {
+                    toolbarContainer.appendChild(editor.ui.view.toolbar.element);
+                }
                 window.myEditor = editor; 
 
-                // --- LIVE PREVIEW BY HEADING SECTION ---
+                // --- LIVE PREVIEW ---
                 editor.model.document.on('change:data', () => {
                     const data = editor.getData();
                     const previewContainer = document.getElementById('livePreview');
-                    
-                    if (data && data.trim() !== "" && !data.includes("Start typing")) {
+                    if (previewContainer && data.trim() !== "") {
                         const tempDiv = document.createElement('div');
                         tempDiv.innerHTML = data;
-                        
                         let sections = groupIntoSections(tempDiv);
-
-                        let previewHtml = `<div style="background:#0f172a; padding:20px; border-radius:20px;">`;
-                        sections.forEach((content, index) => {
-                            const charId = (index % 50) + 1;
-                            const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=Humble${charId}&backgroundColor=b6e3f4,c0aede`;
-                            previewHtml += `
-                                <div style="margin-bottom:40px; border-left:4px solid #22c55e; padding-left:15px;">
-                                    <img src="${avatar}" style="width:50px; height:50px; border-radius:50%; background:white; border:2px solid #22c55e; margin-bottom:10px;">
-                                    <div style="background:#1e293b; color:#f8fafc; padding:20px; border-radius:12px;">
-                                        ${content}
-                                    </div>
-                                </div>`;
-                        });
-                        previewHtml += `</div>`;
-                        previewContainer.innerHTML = previewHtml;
+                        renderPreview(sections, previewContainer);
                     }
                 });
+            })
+            .catch(error => {
+                console.error("Editor Initialization Failed:", error);
             });
     }
 });
 
-// Helper function: Strictly groups by Heading tags
+// --- ALTERNATIVE: FILE UPLOAD LOGIC ---
+// This handles when you select a file instead of typing
+function handleFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const content = e.target.result;
+        // If it's a text/html file, we put it into the editor automatically
+        if (window.myEditor) {
+            window.myEditor.setData(content);
+        }
+        console.log("File loaded into editor");
+    };
+    reader.readAsText(file);
+}
+
+// Helper: Grouping Logic
 function groupIntoSections(container) {
     let sections = [];
     let currentSection = "";
-    
     Array.from(container.children).forEach(child => {
-        // When we hit a Heading (H2 or H3), we start a new section
         if (child.tagName === 'H2' || child.tagName === 'H3') {
-            if (currentSection !== "") {
-                sections.push(currentSection);
-            }
+            if (currentSection !== "") sections.push(currentSection);
             currentSection = child.outerHTML;
         } else {
-            // Append paragraphs, lists, etc., to the current heading section
             currentSection += child.outerHTML;
         }
     });
-    
-    if (currentSection !== "") {
-        sections.push(currentSection);
-    }
+    if (currentSection !== "") sections.push(currentSection);
     return sections;
 }
 
-// --- LESSON UPLOAD FUNCTION ---
+function renderPreview(sections, container) {
+    let previewHtml = `<div style="background:#0f172a; padding:20px; border-radius:20px;">`;
+    sections.forEach((content, index) => {
+        const charId = (index % 50) + 1;
+        const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=Humble${charId}&backgroundColor=b6e3f4,c0aede`;
+        previewHtml += `
+            <div style="margin-bottom:40px; border-left:4px solid #22c55e; padding-left:15px;">
+                <img src="${avatar}" style="width:50px; height:50px; border-radius:50%; background:white; border:2px solid #22c55e; margin-bottom:10px;">
+                <div style="background:#1e293b; color:#f8fafc; padding:20px; border-radius:12px;">${content}</div>
+            </div>`;
+    });
+    container.innerHTML = previewHtml + `</div>`;
+}
+
+// --- MASTER UPLOAD FUNCTION ---
 async function submitLessonNote() {
     const saveStatus = document.getElementById('saveStatus');
     const course = document.getElementById('adminCourseSelect').value;
     const taskNum = document.getElementById('adminTaskNum').value;
     const title = document.getElementById('adminTitle').value;
 
-    if (!window.myEditor) return alert("Editor not ready!");
-    let rawEditorData = window.myEditor.getData();
-    if (!rawEditorData || rawEditorData.trim() === "") return alert("Please enter lesson content!");
+    if (!window.myEditor) {
+        alert("Editor is not ready. Please refresh the page.");
+        return;
+    }
 
-    saveStatus.innerText = "🚀 PACKAGING GAME SECTIONS...";
+    let rawEditorData = window.myEditor.getData();
+    if (!rawEditorData || rawEditorData.trim() === "") {
+        alert("Please type a lesson or upload a file first!");
+        return;
+    }
+
+    saveStatus.innerText = "🚀 UPLOADING TO DATABASE...";
 
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = rawEditorData;
@@ -1982,13 +2005,12 @@ async function submitLessonNote() {
         finalGameHtml += `
             <div class="step-card" id="step_${index}" style="display: ${index === 0 ? 'block' : 'none'};">
                 <div style="display:flex; gap:15px; align-items:flex-start;">
-                    <img src="${avatar}" style="width:85px; height:85px; border-radius:50%; border:4px solid #22c55e; background:#fff; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <img src="${avatar}" style="width:85px; height:85px; border-radius:50%; border:4px solid #22c55e; background:#fff;">
                     <div style="background:white; border:2px solid #e2e8f0; padding:25px; border-radius:25px; flex:1; box-shadow: 0 6px 0 #f1f5f9;">
                         <div style="font-size:1.1rem; color:#1e293b;">${sectionContent}</div>
                         <div style="margin-top:20px; border-top:2px dashed #e2e8f0; padding-top:15px;">
-                            <p style="font-weight:bold; color:#22c55e; margin-bottom:10px;">End of this section. Any questions?</p>
-                            <div style="display:flex; gap:12px; margin-top:10px;">
-                                <button onclick="askAITeacher('${index}')" style="background:#22c55e; color:white; border:none; padding:12px 25px; border-radius:15px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 0 #15803d;">💡 ASK AI</button>
+                            <div style="display:flex; gap:12px;">
+                                <button onclick="askAITeacher('${index}')" style="background:#22c55e; color:white; border:none; padding:12px 25px; border-radius:15px; font-weight:bold; cursor:pointer;">💡 ASK AI</button>
                                 <button onclick="unlockNext(${index}, ${sections.length})" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; padding:12px 25px; border-radius:15px; font-weight:bold; cursor:pointer;">CONTINUE ➔</button>
                             </div>
                             <div id="ai_box_${index}" style="margin-top:15px; display:none; background:#f8fafc; padding:15px; border-radius:12px; border-left:5px solid #22c55e;"></div>
@@ -2007,57 +2029,39 @@ async function submitLessonNote() {
                 next.style.display = 'block'; 
                 window.scrollTo({top: next.offsetTop - 50, behavior: 'smooth'});
             } else { 
-                triggerExerciseTransition();
+                alert("Lecture Finished! Ready for exercise?");
+                window.parent.startExerciseLogic(); 
             }
         }
-
-        function triggerExerciseTransition() {
-            const container = document.querySelector('.hct-game-engine');
-            container.innerHTML += \`
-                <div style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.9); z-index:9999; display:flex; align-items:center; justify-content:center; padding:20px;">
-                    <div style="background:white; padding:40px; border-radius:30px; text-align:center; max-width:500px; border:6px solid #22c55e;">
-                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Finish&backgroundColor=b6e3f4" style="width:120px; border-radius:50%; margin-bottom:20px;">
-                        <h2>Lecture Complete!</h2>
-                        <p>Ready for your 20-question exercise? You have 18 minutes. You must score 80% to unlock the next lesson!</p>
-                        <button onclick="window.parent.startExerciseLogic()" style="background:#22c55e; color:white; padding:15px 40px; border-radius:15px; font-size:1.2rem; font-weight:bold; border:none; cursor:pointer;">START EXERCISE ➔</button>
-                    </div>
-                </div>\`;
-        }
-
         async function askAITeacher(id) {
-            const q = prompt("Ask me anything about this section...");
+            const q = prompt("Ask AI Teacher:");
             if(!q) return;
-            const box = document.getElementById('ai_box_'+id);
-            box.style.display = 'block';
-            box.innerHTML = "<b>Researching...</b>";
-            try {
-                const r = await fetch("${scriptURL}?action=ai_query&query="+encodeURIComponent(q));
-                const d = await r.json();
-                box.innerHTML = "<b>AI Answer:</b><br>" + d.answer;
-            } catch(e) {
-                box.innerHTML = "<b>Research complete.</b> I've noted your question!";
-            }
+            document.getElementById('ai_box_'+id).style.display = 'block';
+            document.getElementById('ai_box_'+id).innerHTML = "<b>Researching...</b>";
         }
     <\/script>`;
 
+    // THE ACTUAL UPLOAD CALL
     try {
         const response = await fetch(scriptURL, { 
             method: 'POST', 
+            // Change to 'cors' to ensure you get a response back
             mode: 'no-cors', 
             body: JSON.stringify({
                 action: "save_lesson",
                 course: course,
                 task: taskNum,
                 title: title,
-                body: finalGameHtml,
-                generateQuiz: true 
+                body: finalGameHtml
             }) 
         });
-        alert("Lesson & Exercise successfully uploaded!");
+        
+        saveStatus.innerText = "✅ UPLOAD COMPLETE!";
+        alert("Lesson saved and shared with students!");
         location.reload();
     } catch (error) {
-        console.error("Upload failed:", error);
-        alert("Error connecting to server.");
+        saveStatus.innerText = "❌ UPLOAD FAILED";
+        alert("Connection Error. Check your internet or Script URL.");
     }
 }
 </script>
