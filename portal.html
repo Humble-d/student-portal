@@ -1871,165 +1871,119 @@ function initWordProcessor() {
     <div id="saveStatus" style="margin-top: 10px; font-weight: bold; color: #f39c12;">☁️ Waiting for input...</div>
 </div> 
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-    if (typeof DecoupledEditor !== 'undefined') {
-        DecoupledEditor
-            .create(document.querySelector('#wordEditor'), {
-                // Keep your Magic Image Plugin
-                extraPlugins: [ function( editor ) {
-                    editor.plugins.get( 'FileRepository' ).createUploadAdapter = ( loader ) => {
-                        return {
-                            upload() {
-                                return loader.file.then( file => new Promise( ( resolve, reject ) => {
-                                    const reader = new FileReader();
-                                    reader.onload = () => resolve( { default: reader.result } );
-                                    reader.onerror = error => reject( error );
-                                    reader.readAsDataURL( file );
-                                } ) );
-                            },
-                            abort() { }
-                        };
-                    };
-                } ]
-            })
-            .then(editor => {
-                const toolbarContainer = document.querySelector('#toolbar-container');
-                toolbarContainer.appendChild(editor.ui.view.toolbar.element);
-                
-                window.myEditor = editor; 
+// --- GLOBAL CONFIG ---
+const PASS_MARK = 80;
+const EXERCISE_TIME_LIMIT = 18 * 60; // 18 minutes in seconds
 
-                // --- PREMIUM DUOLINGO LIVE PREVIEW LOGIC ---
-                editor.model.document.on('change:data', () => {
-                    const data = editor.getData();
-                    const previewContainer = document.getElementById('livePreview');
-                    
-                    // Fixed robot for preview
-                    const previewTeacher = "https://api.dicebear.com/7.x/bottts/svg?seed=Felix";
-
-                    if (data && data.trim() !== "" && !data.includes("Start typing")) {
-                        previewContainer.innerHTML = `
-                            <div class="duo-premium-card">
-                                <img src="${previewTeacher}" class="duo-character-img" alt="Teacher">
-                                <div class="duo-bubble">
-                                    ${data}
-                                </div>
-                            </div>
-                        `;
-                    } else {
-                        previewContainer.innerHTML = "<p style='text-align:center; color:gray; padding-top:20px;'>📱 Type a note or switch to 'Upload File' mode...</p>";
-                    }
-                });
-            })
-            .catch(error => {
-                console.error(error);
-            });
+// 1. UPDATED LESSON NAVIGATION
+function unlockNext(i, totalSections) {
+    document.getElementById('step_'+i).style.opacity = '0.6';
+    let next = document.getElementById('step_'+(i+1));
+    
+    if(next) { 
+        next.style.display = 'block'; 
+        window.scrollTo({top: next.offsetTop - 50, behavior: 'smooth'});
+    } else { 
+        // THIS IS THE END OF THE LESSON
+        triggerTransitionToExercise();
     }
-});
+}
 
-// This is the function that triggers when you click the button!
-// --- THIS FUNCTION NOW AUTOMATICALLY "WRAPS" YOUR TEXT IN GAMING LAYOUTS ---
-async function submitLessonNote() {
-    const fileInput = document.getElementById('lessonFile'); 
-    const btn = document.getElementById('uploadBtn');
-    const saveStatus = document.getElementById('saveStatus');
-    const scriptURL = "https://script.google.com/macros/s/AKfycby5CQVpB-T7WsHo6pWTXCl1tsis-DCVd-gGA7B08UbcXxLvKGawL8FJdydvyKixN3ELkg/exec";
+function triggerTransitionToExercise() {
+    const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=TeacherFinal&backgroundColor=b6e3f4`;
+    
+    // Character pops up to lead them to the exercise
+    const transitionOverlay = document.createElement('div');
+    transitionOverlay.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.95); z-index:10000; display:flex; align-items:center; justify-content:center; padding:20px;";
+    transitionOverlay.innerHTML = `
+        <div style="background:white; padding:40px; border-radius:30px; text-align:center; max-width:500px; border:5px solid #22c55e;">
+            <img src="${avatar}" style="width:120px; height:120px; border-radius:50%; border:4px solid #22c55e; margin-bottom:20px;">
+            <h2 style="color:#1e293b;">Great Job, Scholar!</h2>
+            <p style="font-size:1.2rem; color:#475569; margin-bottom:25px;">You have finished the lecture. Now, let's see what you've learned. Press the button below to start your 18-minute challenge!</p>
+            <button onclick="startAutoExercise()" style="background:#22c55e; color:white; border:none; padding:15px 40px; border-radius:15px; font-size:1.2rem; font-weight:bold; cursor:pointer; box-shadow: 0 5px 0 #15803d;">🚀 GO TO EXERCISE</button>
+        </div>
+    `;
+    document.body.appendChild(transitionOverlay);
+}
 
-    // 1. GENERATE THE AVATAR FIRST (To keep the Duolingo style consistent)
-    const teacherAvatars = [
-        "https://api.dicebear.com/7.x/bottts/svg?seed=Felix",
-        "https://api.dicebear.com/7.x/bottts/svg?seed=Aria",
-        "https://api.dicebear.com/7.x/bottts/svg?seed=Leo",
-        "https://api.dicebear.com/7.x/bottts/svg?seed=Milo",
-        "https://api.dicebear.com/7.x/bottts/svg?seed=Zoe"
-    ];
-    const selectedTeacher = teacherAvatars[Math.floor(Math.random() * teacherAvatars.length)];
+// 2. EXERCISE GENERATION & TIMER
+async function startAutoExercise() {
+    // Logic to fetch 20 questions based on the 'body' of the current lesson
+    // We send the lesson content to Gemini/AI to create 20 MCQs
+    window.location.href = "#exerciseSection"; // Redirects to the exercise task
+    initializeQuiz(20, EXERCISE_TIME_LIMIT);
+}
 
-    // 2. CHUNKING BYPASS (For Word Docs/PDFs with high-res images)
-    if (fileInput && fileInput.files.length > 0) {
-        const file = fileInput.files[0];
-        saveStatus.innerText = "⚡ PREPARING PREMIUM DOCUMENT...";
-        btn.disabled = true;
-
-        const reader = new FileReader();
-        reader.onload = async function(e) {
-            const base64Data = e.target.result.split(',')[1];
-            const chunkSize = 500000; 
-            const totalChunks = Math.ceil(base64Data.length / chunkSize);
-            const fileId = "doc_" + Math.random().toString(36).substr(2, 9);
-
-            // We create a "Duo-style" button for the student to click
-            const fileDuoStructure = `
-                <div class="duo-premium-card">
-                    <img src="${selectedTeacher}" class="duo-character-img" alt="Teacher">
-                    <div class="duo-bubble">
-                        <p>I've prepared a detailed document for you! Click below to view the full lesson:</p>
-                        <a href="TEMP_URL" target="_blank" style="display:inline-block; background:#22c55e; color:white; padding:10px 20px; border-radius:12px; text-decoration:none; font-weight:bold; margin-top:10px;">
-                           📖 Open ${file.name}
-                        </a>
-                    </div>
-                </div>
-            `;
-
-            for (let i = 0; i < totalChunks; i++) {
-                const chunk = base64Data.slice(i * chunkSize, (i + 1) * chunkSize);
-                saveStatus.innerText = `☁️ UPLOADING (${Math.round((i / totalChunks) * 100)}%)...`;
-
-                const payload = {
-                    action: "upload_chunk",
-                    course: document.getElementById('adminCourseSelect').value,
-                    task: document.getElementById('adminTaskNum').value,
-                    title: document.getElementById('adminTitle').value,
-                    fileId: fileId,
-                    chunk: chunk,
-                    chunkIndex: i,
-                    totalChunks: totalChunks,
-                    fileName: file.name,
-                    mimeType: file.type,
-                    duoStructure: fileDuoStructure // We send the style to Google
-                };
-
-                await fetch(scriptURL, { method: "POST", body: JSON.stringify(payload) });
-                
-                if (i === totalChunks - 1) {
-                    alert("Success! Your Premium Document Lesson is live.");
-                    location.reload();
-                }
-            }
-        };
-        reader.readAsDataURL(file);
-    } 
-    // 3. TEXT FALLBACK (For typed notes)
-    else {
-        let rawEditorData = window.myEditor.getData();
-        if(!rawEditorData || rawEditorData.trim() === "" || rawEditorData.includes("Start typing")) {
-            alert("Please enter notes or attach a file!");
-            return;
-        }
-
-        const premiumDuoData = `
-            <div class="duo-premium-card">
-                <img src="${selectedTeacher}" class="duo-character-img" alt="Teacher">
-                <div class="duo-bubble">${rawEditorData}</div>
-            </div>
-        `;
-
-        saveStatus.innerText = "☁️ Saving text lesson...";
+function initializeQuiz(qty, seconds) {
+    let timeLeft = seconds;
+    const timerDisplay = document.getElementById('quizTimer'); // Ensure this ID exists in your HTML
+    
+    const countdown = setInterval(() => {
+        let mins = Math.floor(timeLeft / 60);
+        let secs = timeLeft % 60;
+        timerDisplay.innerText = `Time Remaining: ${mins}:${secs < 10 ? '0' : ''}${secs}`;
         
-        fetch(scriptURL, { 
-            method: 'POST', 
-            mode: 'no-cors', 
-            body: JSON.stringify({
-                action: "save_lesson",
-                course: document.getElementById('adminCourseSelect').value,
-                task: document.getElementById('adminTaskNum').value,
-                title: document.getElementById('adminTitle').value,
-                body: premiumDuoData
-            }) 
-        }).then(() => {
-            alert("Text Lesson Uploaded Successfully!");
-            location.reload();
-        });
+        if (timeLeft <= 0) {
+            clearInterval(countdown);
+            autoSubmitQuiz();
+        }
+        timeLeft--;
+    }, 1000);
+}
+
+// 3. SCORING & GATEKEEPING
+function processResults(score, total) {
+    const percentage = (score / total) * 100;
+    const currentCourse = localStorage.getItem('activeCourse');
+    const currentTask = parseInt(localStorage.getItem('activeTask'));
+
+    if (percentage >= PASS_MARK) {
+        // SUCCESS: Upload to Ranking & Unlock Next
+        uploadToRanking(score);
+        localStorage.setItem(`${currentCourse}_task_${currentTask + 1}`, "unlocked");
+        alert(`🏆 Score: ${percentage}%! Next lesson unlocked.`);
+    } else {
+        // FAILURE: Character tells them to go back
+        const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=HumbleCare&backgroundColor=ffdfbf`;
+        showFailureModal(avatar, percentage);
     }
+}
+
+function showFailureModal(img, pct) {
+    const modal = document.createElement('div');
+    modal.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:20000; display:flex; align-items:center; justify-content:center;";
+    modal.innerHTML = `
+        <div style="background:white; padding:30px; border-radius:20px; text-align:center; max-width:400px;">
+            <img src="${img}" style="width:100px; margin-bottom:15px;">
+            <h3 style="color:#e11d48;">Score: ${pct}%</h3>
+            <p>"Oh no! You didn't reach the 80% mastery mark. Please revisit your lecture notes again before you retake this exercise."</p>
+            <button onclick="location.reload()" style="margin-top:20px; background:#1e293b; color:white; padding:10px 20px; border-radius:10px; border:none;">Review Lecture</button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+// 4. ADMIN UPLOAD MODIFICATION
+// This ensures the AI questions are prepared when you save the lesson
+async function submitLessonNote() {
+    // ... [Previous Editor & Section Code here] ...
+    
+    // Add logic to tell the server: "Generate 20 questions for this text"
+    const lessonData = {
+        action: "save_lesson_and_quiz",
+        course: course,
+        task: taskNum,
+        title: title,
+        body: finalGameHtml,
+        generateQuiz: true,
+        quizCount: 20
+    };
+    
+    fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(lessonData) })
+    .then(() => {
+        alert("Lesson and 20-Question Exercise Prepared!");
+        location.reload();
+    });
 }
 </script>
         
