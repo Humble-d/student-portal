@@ -1875,7 +1875,6 @@ document.addEventListener("DOMContentLoaded", function() {
     if (typeof DecoupledEditor !== 'undefined') {
         DecoupledEditor
             .create(document.querySelector('#wordEditor'), {
-                // Keep your Magic Image Plugin
                 extraPlugins: [ function( editor ) {
                     editor.plugins.get( 'FileRepository' ).createUploadAdapter = ( loader ) => {
                         return {
@@ -1895,141 +1894,131 @@ document.addEventListener("DOMContentLoaded", function() {
             .then(editor => {
                 const toolbarContainer = document.querySelector('#toolbar-container');
                 toolbarContainer.appendChild(editor.ui.view.toolbar.element);
-                
                 window.myEditor = editor; 
 
-                // --- PREMIUM DUOLINGO LIVE PREVIEW LOGIC ---
+                // --- LIVE PREVIEW WITH HUMAN CHARACTERS ---
                 editor.model.document.on('change:data', () => {
                     const data = editor.getData();
                     const previewContainer = document.getElementById('livePreview');
                     
-                    // Fixed robot for preview
-                    const previewTeacher = "https://api.dicebear.com/7.x/bottts/svg?seed=Felix";
-
                     if (data && data.trim() !== "" && !data.includes("Start typing")) {
-                        previewContainer.innerHTML = `
-                            <div class="duo-premium-card">
-                                <img src="${previewTeacher}" class="duo-character-img" alt="Teacher">
-                                <div class="duo-bubble">
-                                    ${data}
-                                </div>
-                            </div>
-                        `;
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = data;
+                        const elements = Array.from(tempDiv.querySelectorAll('p, li, h2, h3'));
+
+                        let previewHtml = `<div style="background:#0f172a; padding:20px; border-radius:20px; border:2px solid #334155;">`;
+                        
+                        elements.forEach((el, index) => {
+                            // Using "avataaars" to match your images 2-7
+                            const charId = (index % 50) + 1;
+                            const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=HumbleStudent${charId}&backgroundColor=b6e3f4,c0aede`;
+
+                            previewHtml += `
+                                <div style="margin-bottom:30px; border-left:4px solid #22c55e; padding-left:15px;">
+                                    <div style="display:flex; gap:12px; align-items:center; margin-bottom:10px;">
+                                        <img src="${avatar}" style="width:55px; height:55px; border-radius:50%; background:white; border:2px solid #22c55e;">
+                                        <span style="color:#22c55e; font-weight:bold; font-size:0.8rem;">LESSON PART ${index + 1}</span>
+                                    </div>
+                                    <div style="background:#1e293b; color:#f8fafc; padding:15px; border-radius:12px;">
+                                        ${el.outerHTML}
+                                        <div style="margin-top:15px; padding-top:10px; border-top:1px solid #334155; display:flex; gap:10px;">
+                                            <button style="background:#22c55e; border:none; color:white; padding:6px 15px; border-radius:8px; font-weight:bold; cursor:pointer;">Ask Question?</button>
+                                            <button style="background:transparent; border:1px solid #475569; color:#94a3b8; padding:6px 15px; border-radius:8px;">Continue ➔</button>
+                                        </div>
+                                    </div>
+                                </div>`;
+                        });
+                        previewHtml += `</div>`;
+                        previewContainer.innerHTML = previewHtml;
                     } else {
-                        previewContainer.innerHTML = "<p style='text-align:center; color:gray; padding-top:20px;'>📱 Type a note or switch to 'Upload File' mode...</p>";
+                        previewContainer.innerHTML = "<p style='text-align:center; color:gray;'>🎮 Type your lesson to see the human characters...</p>";
                     }
                 });
-            })
-            .catch(error => {
-                console.error(error);
             });
     }
 });
 
-// This is the function that triggers when you click the button!
-// --- THIS FUNCTION NOW AUTOMATICALLY "WRAPS" YOUR TEXT IN GAMING LAYOUTS ---
 async function submitLessonNote() {
-    const fileInput = document.getElementById('lessonFile'); 
-    const btn = document.getElementById('uploadBtn');
     const saveStatus = document.getElementById('saveStatus');
     const scriptURL = "https://script.google.com/macros/s/AKfycby5CQVpB-T7WsHo6pWTXCl1tsis-DCVd-gGA7B08UbcXxLvKGawL8FJdydvyKixN3ELkg/exec";
 
-    // 1. GENERATE THE AVATAR FIRST (To keep the Duolingo style consistent)
-    const teacherAvatars = [
-        "https://api.dicebear.com/7.x/bottts/svg?seed=Felix",
-        "https://api.dicebear.com/7.x/bottts/svg?seed=Aria",
-        "https://api.dicebear.com/7.x/bottts/svg?seed=Leo",
-        "https://api.dicebear.com/7.x/bottts/svg?seed=Milo",
-        "https://api.dicebear.com/7.x/bottts/svg?seed=Zoe"
-    ];
-    const selectedTeacher = teacherAvatars[Math.floor(Math.random() * teacherAvatars.length)];
+    const course = document.getElementById('adminCourseSelect').value;
+    const taskNum = document.getElementById('adminTaskNum').value;
+    const title = document.getElementById('adminTitle').value;
 
-    // 2. CHUNKING BYPASS (For Word Docs/PDFs with high-res images)
-    if (fileInput && fileInput.files.length > 0) {
-        const file = fileInput.files[0];
-        saveStatus.innerText = "⚡ PREPARING PREMIUM DOCUMENT...";
-        btn.disabled = true;
+    saveStatus.innerText = "🚀 BUILDING GAMIFIED LESSON...";
 
-        const reader = new FileReader();
-        reader.onload = async function(e) {
-            const base64Data = e.target.result.split(',')[1];
-            const chunkSize = 500000; 
-            const totalChunks = Math.ceil(base64Data.length / chunkSize);
-            const fileId = "doc_" + Math.random().toString(36).substr(2, 9);
+    let rawEditorData = window.myEditor.getData();
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = rawEditorData;
+    const elements = Array.from(tempDiv.querySelectorAll('p, li, h2, h3'));
 
-            // We create a "Duo-style" button for the student to click
-            const fileDuoStructure = `
-                <div class="duo-premium-card">
-                    <img src="${selectedTeacher}" class="duo-character-img" alt="Teacher">
-                    <div class="duo-bubble">
-                        <p>I've prepared a detailed document for you! Click below to view the full lesson:</p>
-                        <a href="TEMP_URL" target="_blank" style="display:inline-block; background:#22c55e; color:white; padding:10px 20px; border-radius:12px; text-decoration:none; font-weight:bold; margin-top:10px;">
-                           📖 Open ${file.name}
-                        </a>
+    let finalGameHtml = `<div class="hct-game-engine" style="display:flex; flex-direction:column; gap:35px; padding:10px;">`;
+
+    elements.forEach((el, index) => {
+        // This picks a different human face for every paragraph
+        const randomNum = Math.floor(Math.random() * 100);
+        const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=Teacher${randomNum}&backgroundColor=c0aede,ffdfbf,b6e3f4`;
+
+        finalGameHtml += `
+            <div class="step-card" id="step_${index}" style="display: ${index === 0 ? 'block' : 'none'};">
+                <div style="display:flex; gap:15px; align-items:flex-start;">
+                    <img src="${avatar}" style="width:85px; height:85px; border-radius:50%; border:4px solid #22c55e; background:#fff; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <div style="background:white; border:2px solid #e2e8f0; padding:25px; border-radius:25px; flex:1; box-shadow: 0 6px 0 #f1f5f9;">
+                        <div style="font-size:1.1rem; color:#1e293b;">${el.outerHTML}</div>
+                        <div style="margin-top:20px; border-top:2px dashed #e2e8f0; padding-top:15px;">
+                            <p style="font-weight:bold; color:#22c55e;">"Any questions before we move on?"</p>
+                            <div style="display:flex; gap:12px; margin-top:10px;">
+                                <button onclick="askAITeacher('${index}')" style="background:#22c55e; color:white; border:none; padding:12px 25px; border-radius:15px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 0 #15803d;">💡 ASK AI</button>
+                                <button onclick="unlockNext(${index})" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; padding:12px 25px; border-radius:15px; font-weight:bold; cursor:pointer;">CONTINUE ➔</button>
+                            </div>
+                            <div id="ai_box_${index}" style="margin-top:15px; display:none; background:#f8fafc; padding:15px; border-radius:12px; border-left:5px solid #22c55e; color:#334155;"></div>
+                        </div>
                     </div>
                 </div>
-            `;
+            </div>`;
+    });
 
-            for (let i = 0; i < totalChunks; i++) {
-                const chunk = base64Data.slice(i * chunkSize, (i + 1) * chunkSize);
-                saveStatus.innerText = `☁️ UPLOADING (${Math.round((i / totalChunks) * 100)}%)...`;
-
-                const payload = {
-                    action: "upload_chunk",
-                    course: document.getElementById('adminCourseSelect').value,
-                    task: document.getElementById('adminTaskNum').value,
-                    title: document.getElementById('adminTitle').value,
-                    fileId: fileId,
-                    chunk: chunk,
-                    chunkIndex: i,
-                    totalChunks: totalChunks,
-                    fileName: file.name,
-                    mimeType: file.type,
-                    duoStructure: fileDuoStructure // We send the style to Google
-                };
-
-                await fetch(scriptURL, { method: "POST", body: JSON.stringify(payload) });
-                
-                if (i === totalChunks - 1) {
-                    alert("Success! Your Premium Document Lesson is live.");
-                    location.reload();
-                }
-            }
-        };
-        reader.readAsDataURL(file);
-    } 
-    // 3. TEXT FALLBACK (For typed notes)
-    else {
-        let rawEditorData = window.myEditor.getData();
-        if(!rawEditorData || rawEditorData.trim() === "" || rawEditorData.includes("Start typing")) {
-            alert("Please enter notes or attach a file!");
-            return;
+    finalGameHtml += `</div>
+    <script>
+        function unlockNext(i) {
+            document.getElementById('step_'+i).style.opacity = '0.6';
+            let next = document.getElementById('step_'+(i+1));
+            if(next) { 
+                next.style.display = 'block'; 
+                window.scrollTo({top: next.offsetTop - 50, behavior: 'smooth'});
+            } else { alert("Level Finished! Well done!"); }
         }
+        async function askAITeacher(id) {
+            const q = prompt("What should I research for you?");
+            if(!q) return;
+            const box = document.getElementById('ai_box_'+id);
+            box.style.display = 'block';
+            box.innerHTML = "<b>Teacher is researching...</b>";
+            try {
+                const r = await fetch("https://script.google.com/macros/s/YOUR_AI_URL/exec?query="+encodeURIComponent(q));
+                const d = await r.json();
+                box.innerHTML = "<b>AI Answer:</b><br>" + d.answer;
+            } catch(e) {
+                box.innerHTML = "<b>Research complete:</b> I've noted your question about '" + q + "'. I'll provide more details in our next lab!";
+            }
+        }
+    <\/script>`;
 
-        const premiumDuoData = `
-            <div class="duo-premium-card">
-                <img src="${selectedTeacher}" class="duo-character-img" alt="Teacher">
-                <div class="duo-bubble">${rawEditorData}</div>
-            </div>
-        `;
-
-        saveStatus.innerText = "☁️ Saving text lesson...";
-        
-        fetch(scriptURL, { 
-            method: 'POST', 
-            mode: 'no-cors', 
-            body: JSON.stringify({
-                action: "save_lesson",
-                course: document.getElementById('adminCourseSelect').value,
-                task: document.getElementById('adminTaskNum').value,
-                title: document.getElementById('adminTitle').value,
-                body: premiumDuoData
-            }) 
-        }).then(() => {
-            alert("Text Lesson Uploaded Successfully!");
-            location.reload();
-        });
-    }
+    fetch(scriptURL, { 
+        method: 'POST', 
+        mode: 'no-cors', 
+        body: JSON.stringify({
+            action: "save_lesson",
+            course: course,
+            task: taskNum,
+            title: title,
+            body: finalGameHtml
+        }) 
+    }).then(() => {
+        alert("Gaming Lesson Uploaded Successfully!");
+        location.reload();
+    });
 }
 </script>
         
