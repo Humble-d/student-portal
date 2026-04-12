@@ -1874,8 +1874,78 @@ function initWordProcessor() {
 // --- GLOBAL CONFIG ---
 const PASS_MARK = 80;
 const EXERCISE_TIME_LIMIT = 18 * 60; // 18 minutes in seconds
+const scriptURL = "https://script.google.com/macros/s/AKfycby5CQVpB-T7WsHo6pWTXCl1tsis-DCVd-gGA7B08UbcXxLvKGawL8FJdydvyKixN3ELkg/exec";
 
-// 1. UPDATED LESSON NAVIGATION
+// 1. EDITOR INITIALIZATION & PREVIEW
+document.addEventListener("DOMContentLoaded", function() {
+    if (typeof DecoupledEditor !== 'undefined') {
+        DecoupledEditor
+            .create(document.querySelector('#wordEditor'), {
+                extraPlugins: [ function( editor ) {
+                    editor.plugins.get( 'FileRepository' ).createUploadAdapter = ( loader ) => {
+                        return {
+                            upload() {
+                                return loader.file.then( file => new Promise( ( resolve, reject ) => {
+                                    const reader = new FileReader();
+                                    reader.onload = () => resolve( { default: reader.result } );
+                                    reader.onerror = error => reject( error );
+                                    reader.readAsDataURL( file );
+                                } ) );
+                            },
+                            abort() { }
+                        };
+                    };
+                } ]
+            })
+            .then(editor => {
+                const toolbarContainer = document.querySelector('#toolbar-container');
+                if(toolbarContainer) toolbarContainer.appendChild(editor.ui.view.toolbar.element);
+                window.myEditor = editor; 
+
+                editor.model.document.on('change:data', () => {
+                    const data = editor.getData();
+                    const previewContainer = document.getElementById('livePreview');
+                    if (previewContainer && data.trim() !== "") {
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = data;
+                        let sections = groupIntoHeadingSections(tempDiv);
+                        renderAvatarPreview(sections, previewContainer);
+                    }
+                });
+            });
+    }
+});
+
+// Helper to group by Headings only
+function groupIntoHeadingSections(container) {
+    let sections = [];
+    let currentSection = "";
+    Array.from(container.children).forEach(child => {
+        if (child.tagName === 'H2' || child.tagName === 'H3') {
+            if (currentSection !== "") sections.push(currentSection);
+            currentSection = child.outerHTML;
+        } else {
+            currentSection += child.outerHTML;
+        }
+    });
+    if (currentSection !== "") sections.push(currentSection);
+    return sections;
+}
+
+function renderAvatarPreview(sections, container) {
+    let previewHtml = `<div style="background:#0f172a; padding:20px; border-radius:20px;">`;
+    sections.forEach((content, index) => {
+        const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=Humble${index}&backgroundColor=b6e3f4,c0aede`;
+        previewHtml += `
+            <div style="margin-bottom:40px; border-left:4px solid #22c55e; padding-left:15px;">
+                <img src="${avatar}" style="width:50px; height:50px; border-radius:50%; background:white; border:2px solid #22c55e; margin-bottom:10px;">
+                <div style="background:#1e293b; color:#f8fafc; padding:20px; border-radius:12px;">${content}</div>
+            </div>`;
+    });
+    container.innerHTML = previewHtml + `</div>`;
+}
+
+// 2. LESSON NAVIGATION & CHARACTER LOGIC
 function unlockNext(i, totalSections) {
     document.getElementById('step_'+i).style.opacity = '0.6';
     let next = document.getElementById('step_'+(i+1));
@@ -1884,45 +1954,38 @@ function unlockNext(i, totalSections) {
         next.style.display = 'block'; 
         window.scrollTo({top: next.offsetTop - 50, behavior: 'smooth'});
     } else { 
-        // THIS IS THE END OF THE LESSON
         triggerTransitionToExercise();
     }
 }
 
 function triggerTransitionToExercise() {
     const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=TeacherFinal&backgroundColor=b6e3f4`;
-    
-    // Character pops up to lead them to the exercise
     const transitionOverlay = document.createElement('div');
     transitionOverlay.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.95); z-index:10000; display:flex; align-items:center; justify-content:center; padding:20px;";
     transitionOverlay.innerHTML = `
         <div style="background:white; padding:40px; border-radius:30px; text-align:center; max-width:500px; border:5px solid #22c55e;">
             <img src="${avatar}" style="width:120px; height:120px; border-radius:50%; border:4px solid #22c55e; margin-bottom:20px;">
             <h2 style="color:#1e293b;">Great Job, Scholar!</h2>
-            <p style="font-size:1.2rem; color:#475569; margin-bottom:25px;">You have finished the lecture. Now, let's see what you've learned. Press the button below to start your 18-minute challenge!</p>
+            <p style="font-size:1.2rem; color:#475569; margin-bottom:25px;">You have finished the lecture. Press the button below to start your 18-minute challenge!</p>
             <button onclick="startAutoExercise()" style="background:#22c55e; color:white; border:none; padding:15px 40px; border-radius:15px; font-size:1.2rem; font-weight:bold; cursor:pointer; box-shadow: 0 5px 0 #15803d;">🚀 GO TO EXERCISE</button>
         </div>
     `;
     document.body.appendChild(transitionOverlay);
 }
 
-// 2. EXERCISE GENERATION & TIMER
+// 3. EXERCISE & TIMER LOGIC
 async function startAutoExercise() {
-    // Logic to fetch 20 questions based on the 'body' of the current lesson
-    // We send the lesson content to Gemini/AI to create 20 MCQs
-    window.location.href = "#exerciseSection"; // Redirects to the exercise task
+    window.location.href = "#exerciseSection"; 
     initializeQuiz(20, EXERCISE_TIME_LIMIT);
 }
 
 function initializeQuiz(qty, seconds) {
     let timeLeft = seconds;
-    const timerDisplay = document.getElementById('quizTimer'); // Ensure this ID exists in your HTML
-    
+    const timerDisplay = document.getElementById('quizTimer'); 
     const countdown = setInterval(() => {
         let mins = Math.floor(timeLeft / 60);
         let secs = timeLeft % 60;
-        timerDisplay.innerText = `Time Remaining: ${mins}:${secs < 10 ? '0' : ''}${secs}`;
-        
+        if(timerDisplay) timerDisplay.innerText = `Time Remaining: ${mins}:${secs < 10 ? '0' : ''}${secs}`;
         if (timeLeft <= 0) {
             clearInterval(countdown);
             autoSubmitQuiz();
@@ -1931,19 +1994,19 @@ function initializeQuiz(qty, seconds) {
     }, 1000);
 }
 
-// 3. SCORING & GATEKEEPING
+// 4. SCORING & GATEKEEPING
 function processResults(score, total) {
     const percentage = (score / total) * 100;
     const currentCourse = localStorage.getItem('activeCourse');
     const currentTask = parseInt(localStorage.getItem('activeTask'));
 
     if (percentage >= PASS_MARK) {
-        // SUCCESS: Upload to Ranking & Unlock Next
-        uploadToRanking(score);
+        // SUCCESS
+        if(typeof uploadToRanking === 'function') uploadToRanking(score);
         localStorage.setItem(`${currentCourse}_task_${currentTask + 1}`, "unlocked");
         alert(`🏆 Score: ${percentage}%! Next lesson unlocked.`);
     } else {
-        // FAILURE: Character tells them to go back
+        // FAILURE
         const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=HumbleCare&backgroundColor=ffdfbf`;
         showFailureModal(avatar, percentage);
     }
@@ -1963,12 +2026,45 @@ function showFailureModal(img, pct) {
     document.body.appendChild(modal);
 }
 
-// 4. ADMIN UPLOAD MODIFICATION
-// This ensures the AI questions are prepared when you save the lesson
+// 5. MASTER UPLOAD FUNCTION
 async function submitLessonNote() {
-    // ... [Previous Editor & Section Code here] ...
-    
-    // Add logic to tell the server: "Generate 20 questions for this text"
+    const saveStatus = document.getElementById('saveStatus');
+    const course = document.getElementById('adminCourseSelect').value;
+    const taskNum = document.getElementById('adminTaskNum').value;
+    const title = document.getElementById('adminTitle').value;
+
+    if (!window.myEditor) return alert("Editor not ready!");
+    let rawEditorData = window.myEditor.getData();
+
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = rawEditorData;
+    let sections = groupIntoHeadingSections(tempDiv);
+
+    let finalGameHtml = `<div class="hct-game-engine" style="display:flex; flex-direction:column; gap:45px; padding:10px;">`;
+
+    sections.forEach((sectionContent, index) => {
+        const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=Teacher${index}&backgroundColor=c0aede,b6e3f4`;
+        finalGameHtml += `
+            <div class="step-card" id="step_${index}" style="display: ${index === 0 ? 'block' : 'none'};">
+                <div style="display:flex; gap:15px; align-items:flex-start;">
+                    <img src="${avatar}" style="width:85px; height:85px; border-radius:50%; border:4px solid #22c55e; background:#fff; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <div style="background:white; border:2px solid #e2e8f0; padding:25px; border-radius:25px; flex:1; box-shadow: 0 6px 0 #f1f5f9;">
+                        <div style="font-size:1.1rem; color:#1e293b;">${sectionContent}</div>
+                        <div style="margin-top:20px; border-top:2px dashed #e2e8f0; padding-top:15px;">
+                            <p style="font-weight:bold; color:#22c55e;">"Any questions before we move to the next part?"</p>
+                            <div style="display:flex; gap:12px; margin-top:10px;">
+                                <button onclick="askAITeacher('${index}')" style="background:#22c55e; color:white; border:none; padding:12px 25px; border-radius:15px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 0 #15803d;">💡 ASK AI</button>
+                                <button onclick="unlockNext(${index}, ${sections.length})" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; padding:12px 25px; border-radius:15px; font-weight:bold; cursor:pointer;">CONTINUE ➔</button>
+                            </div>
+                            <div id="ai_box_${index}" style="margin-top:15px; display:none; background:#f8fafc; padding:15px; border-radius:12px; border-left:5px solid #22c55e;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+    });
+
+    finalGameHtml += `</div>`;
+
     const lessonData = {
         action: "save_lesson_and_quiz",
         course: course,
@@ -1979,11 +2075,21 @@ async function submitLessonNote() {
         quizCount: 20
     };
     
+    saveStatus.innerText = "🚀 PACKAGING GAME...";
     fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(lessonData) })
     .then(() => {
         alert("Lesson and 20-Question Exercise Prepared!");
         location.reload();
     });
+}
+
+async function askAITeacher(id) {
+    const q = prompt("What should I explain for you?");
+    if(!q) return;
+    const box = document.getElementById('ai_box_'+id);
+    box.style.display = 'block';
+    box.innerHTML = "<b>Teacher is researching...</b>";
+    // Add your AI endpoint logic here
 }
 </script>
         
