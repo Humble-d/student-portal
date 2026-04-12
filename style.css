@@ -1441,4 +1441,33 @@ iframe { width: 100%; height: 100%; border: none; }
 
 
 
+/* GAME UI DESIGN */
+.hct-game-engine { font-family: 'Din Round', sans-serif; max-width: 800px; margin: auto; }
+.step-card { 
+    animation: slideIn 0.5s ease-out; 
+    margin-bottom: 40px; 
+}
+@keyframes slideIn { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+.speech-bubble {
+    background: white;
+    border: 3px solid #e5e5e5;
+    border-bottom: 6px solid #e5e5e5;
+    border-radius: 20px;
+    padding: 20px;
+    position: relative;
+}
+.speech-bubble::before {
+    content: ''; position: absolute; left: -15px; top: 30px;
+    border-width: 10px 15px 10px 0; border-style: solid;
+    border-color: transparent #e5e5e5 transparent transparent;
+}
+
+.game-btn {
+    border: none; border-radius: 12px; padding: 12px 20px; font-weight: bold;
+    cursor: pointer; transition: 0.2s; border-bottom: 4px solid rgba(0,0,0,0.2);
+}
+.btn-green { background: #58cc02; color: white; }
+.btn-blue { background: #1cb0f6; color: white; }
+.btn-next { background: #ff9600; color: white; margin-top: 20px; width: 100%; }
 
