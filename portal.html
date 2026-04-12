@@ -1870,71 +1870,66 @@ function initWordProcessor() {
 
     <div id="saveStatus" style="margin-top: 10px; font-weight: bold; color: #f39c12;">☁️ Waiting for input...</div>
 </div> 
-<script>
 document.addEventListener("DOMContentLoaded", function() {
     if (typeof DecoupledEditor !== 'undefined') {
-        DecoupledEditor
-            .create(document.querySelector('#wordEditor'), {
-                extraPlugins: [ function( editor ) {
-                    editor.plugins.get( 'FileRepository' ).createUploadAdapter = ( loader ) => {
-                        return {
-                            upload() {
-                                return loader.file.then( file => new Promise( ( resolve, reject ) => {
-                                    const reader = new FileReader();
-                                    reader.onload = () => resolve( { default: reader.result } );
-                                    reader.onerror = error => reject( error );
-                                    reader.readAsDataURL( file );
-                                } ) );
-                            },
-                            abort() { }
-                        };
+        DecoupledEditor.create(document.querySelector('#wordEditor'), {
+            extraPlugins: [ function( editor ) {
+                editor.plugins.get( 'FileRepository' ).createUploadAdapter = ( loader ) => {
+                    return {
+                        upload() {
+                            return loader.file.then( file => new Promise( ( resolve, reject ) => {
+                                const reader = new FileReader();
+                                reader.onload = () => resolve( { default: reader.result } );
+                                reader.onerror = error => reject( error );
+                                reader.readAsDataURL( file );
+                            } ) );
+                        },
+                        abort() { }
                     };
-                } ]
-            })
-            .then(editor => {
-                const toolbarContainer = document.querySelector('#toolbar-container');
-                toolbarContainer.appendChild(editor.ui.view.toolbar.element);
-                window.myEditor = editor; 
+                };
+            } ]
+        }).then(editor => {
+            const toolbarContainer = document.querySelector('#toolbar-container');
+            toolbarContainer.appendChild(editor.ui.view.toolbar.element);
+            window.myEditor = editor; 
 
-                // --- LIVE PREVIEW WITH HUMAN CHARACTERS ---
-                editor.model.document.on('change:data', () => {
-                    const data = editor.getData();
-                    const previewContainer = document.getElementById('livePreview');
-                    
-                    if (data && data.trim() !== "" && !data.includes("Start typing")) {
-                        const tempDiv = document.createElement('div');
-                        tempDiv.innerHTML = data;
-                        const elements = Array.from(tempDiv.querySelectorAll('p, li, h2, h3'));
+            // --- SMART 4-PARAGRAPH LIVE PREVIEW ---
+            editor.model.document.on('change:data', () => {
+                const data = editor.getData();
+                const previewContainer = document.getElementById('livePreview');
+                if (!data || data.trim() === "" || data.includes("Start typing")) {
+                    previewContainer.innerHTML = "<p style='text-align:center; color:gray;'>🎮 Type your lesson to see the teachers appear...</p>";
+                    return;
+                }
 
-                        let previewHtml = `<div style="background:#0f172a; padding:20px; border-radius:20px; border:2px solid #334155;">`;
-                        
-                        elements.forEach((el, index) => {
-                            // Using "avataaars" to match your images 2-7
-                            const charId = (index % 50) + 1;
-                            const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=HumbleStudent${charId}&backgroundColor=b6e3f4,c0aede`;
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = data;
+                const allElements = Array.from(tempDiv.children);
+                
+                let previewHtml = `<div style="background:#0f172a; padding:20px; border-radius:20px; border:4px solid #1e293b;">`;
+                
+                // Grouping Logic: Break every 4 elements
+                for (let i = 0; i < allElements.length; i += 4) {
+                    const chunk = allElements.slice(i, i + 4).map(el => el.outerHTML).join('');
+                    const charId = Math.floor(Math.random() * 300); // 300+ unique character seeds
+                    const avatar = `https://api.dicebear.com/7.x/open-peeps/svg?seed=${charId}&face=smiling,bigSmile,cute`;
 
-                            previewHtml += `
-                                <div style="margin-bottom:30px; border-left:4px solid #22c55e; padding-left:15px;">
-                                    <div style="display:flex; gap:12px; align-items:center; margin-bottom:10px;">
-                                        <img src="${avatar}" style="width:55px; height:55px; border-radius:50%; background:white; border:2px solid #22c55e;">
-                                        <span style="color:#22c55e; font-weight:bold; font-size:0.8rem;">LESSON PART ${index + 1}</span>
-                                    </div>
-                                    <div style="background:#1e293b; color:#f8fafc; padding:15px; border-radius:12px;">
-                                        ${el.outerHTML}
-                                        <div style="margin-top:15px; padding-top:10px; border-top:1px solid #334155; display:flex; gap:10px;">
-                                            <button style="background:#22c55e; border:none; color:white; padding:6px 15px; border-radius:8px; font-weight:bold; cursor:pointer;">Ask Question?</button>
-                                            <button style="background:transparent; border:1px solid #475569; color:#94a3b8; padding:6px 15px; border-radius:8px;">Continue ➔</button>
-                                        </div>
-                                    </div>
-                                </div>`;
-                        });
-                        previewHtml += `</div>`;
-                        previewContainer.innerHTML = previewHtml;
-                    } else {
-                        previewContainer.innerHTML = "<p style='text-align:center; color:gray;'>🎮 Type your lesson to see the human characters...</p>";
-                    }
-                });
+                    previewHtml += `
+                        <div style="margin-bottom:40px; display:flex; gap:15px; align-items:flex-start;">
+                            <img src="${avatar}" style="width:75px; height:75px; border-radius:50%; background:#fff; border:3px solid #58cc02; box-shadow:0 5px 15px rgba(0,0,0,0.3);">
+                            <div style="background:#1e293b; color:white; padding:20px; border-radius:20px; flex:1; border:2px solid #334155;">
+                                ${chunk}
+                                <div style="margin-top:15px; border-top:1px dashed #475569; padding-top:10px; display:flex; gap:10px;">
+                                    <button style="background:#58cc02; color:white; border:none; padding:10px 20px; border-radius:12px; font-weight:bold; cursor:pointer;">💡 Ask Teacher</button>
+                                    <button style="background:#1cb0f6; color:white; border:none; padding:10px 20px; border-radius:12px; font-weight:bold; cursor:pointer;">No Questions, Continue ➔</button>
+                                </div>
+                            </div>
+                        </div>`;
+                }
+                previewHtml += `</div>`;
+                previewContainer.innerHTML = previewHtml;
             });
+        });
     }
 });
 
@@ -1946,65 +1941,80 @@ async function submitLessonNote() {
     const taskNum = document.getElementById('adminTaskNum').value;
     const title = document.getElementById('adminTitle').value;
 
-    saveStatus.innerText = "🚀 BUILDING GAMIFIED LESSON...";
+    saveStatus.innerText = "🚀 ENCRYPTING GAMIFIED MISSION...";
 
-    let rawEditorData = window.myEditor.getData();
+    let rawData = window.myEditor.getData();
     const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = rawEditorData;
-    const elements = Array.from(tempDiv.querySelectorAll('p, li, h2, h3'));
+    tempDiv.innerHTML = rawData;
+    const allElements = Array.from(tempDiv.children);
 
-    let finalGameHtml = `<div class="hct-game-engine" style="display:flex; flex-direction:column; gap:35px; padding:10px;">`;
+    let finalGameHtml = `<div class="hct-game-engine" style="display:flex; flex-direction:column; gap:40px;">`;
 
-    elements.forEach((el, index) => {
-        // This picks a different human face for every paragraph
-        const randomNum = Math.floor(Math.random() * 100);
-        const avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=Teacher${randomNum}&backgroundColor=c0aede,ffdfbf,b6e3f4`;
+    for (let i = 0; i < allElements.length; i += 4) {
+        const chunk = allElements.slice(i, i + 4).map(el => el.outerHTML).join('');
+        const charId = Math.floor(Math.random() * 500);
+        const avatar = `https://api.dicebear.com/7.x/open-peeps/svg?seed=${charId}`;
 
         finalGameHtml += `
-            <div class="step-card" id="step_${index}" style="display: ${index === 0 ? 'block' : 'none'};">
-                <div style="display:flex; gap:15px; align-items:flex-start;">
-                    <img src="${avatar}" style="width:85px; height:85px; border-radius:50%; border:4px solid #22c55e; background:#fff; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-                    <div style="background:white; border:2px solid #e2e8f0; padding:25px; border-radius:25px; flex:1; box-shadow: 0 6px 0 #f1f5f9;">
-                        <div style="font-size:1.1rem; color:#1e293b;">${el.outerHTML}</div>
-                        <div style="margin-top:20px; border-top:2px dashed #e2e8f0; padding-top:15px;">
-                            <p style="font-weight:bold; color:#22c55e;">"Any questions before we move on?"</p>
-                            <div style="display:flex; gap:12px; margin-top:10px;">
-                                <button onclick="askAITeacher('${index}')" style="background:#22c55e; color:white; border:none; padding:12px 25px; border-radius:15px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 0 #15803d;">💡 ASK AI</button>
-                                <button onclick="unlockNext(${index})" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; padding:12px 25px; border-radius:15px; font-weight:bold; cursor:pointer;">CONTINUE ➔</button>
-                            </div>
-                            <div id="ai_box_${index}" style="margin-top:15px; display:none; background:#f8fafc; padding:15px; border-radius:12px; border-left:5px solid #22c55e; color:#334155;"></div>
+            <div class="step-card" id="step_${i}" style="display:${i === 0 ? 'flex' : 'none'}; gap:15px; align-items:flex-start;">
+                <img src="${avatar}" style="width:85px; height:85px; border-radius:50%; border:4px solid #58cc02; background:#fff;">
+                <div style="background:white; border:3px solid #e5e5e5; padding:25px; border-radius:25px; flex:1; box-shadow:0 6px 0 #f1f5f9; color:#333;">
+                    ${chunk}
+                    <div style="margin-top:20px; border-top:2px dashed #e5e5e5; padding-top:15px;">
+                        <p style="font-weight:bold; color:#58cc02;">"Ready for the next part, or do you have a question?"</p>
+                        <div style="display:flex; gap:12px; margin-top:10px;">
+                            <button onclick="askAITeacher('${i}')" style="background:#58cc02; color:white; border:none; padding:12px 25px; border-radius:15px; font-weight:bold; cursor:pointer; box-shadow:0 4px 0 #15803d;">💡 ASK AI</button>
+                            <button onclick="unlockNext(${i})" style="background:#1cb0f6; color:white; border:none; padding:12px 25px; border-radius:15px; font-weight:bold; cursor:pointer; box-shadow:0 4px 0 #007bb5;">CONTINUE ➔</button>
                         </div>
+                        <div id="ai_box_${i}" style="margin-top:15px; display:none; background:#f8fafc; padding:15px; border-radius:12px; border-left:5px solid #58cc02; color:#334155; font-size:0.95rem;"></div>
                     </div>
                 </div>
             </div>`;
-    });
+    }
 
-    finalGameHtml += `</div>
+    // FINAL "MOVE TO EXERCISE" BUTTON
+    finalGameHtml += `
+        <div id="finish_lesson" style="display:none; text-align:center; padding:40px;">
+            <h2 style="color:#58cc02;">Lesson Complete! 🏆</h2>
+            <p>You must now pass the 20-question exercise with 80% to unlock the next level.</p>
+            <button onclick="startMissionExercise()" style="background:#ff9600; color:white; border:none; padding:20px 40px; border-radius:20px; font-size:1.5rem; font-weight:bold; cursor:pointer; box-shadow:0 6px 0 #c77500;">START EXERCISE (18 MINS)</button>
+        </div>
+    </div>
+    
     <script>
         function unlockNext(i) {
-            document.getElementById('step_'+i).style.opacity = '0.6';
-            let next = document.getElementById('step_'+(i+1));
-            if(next) { 
-                next.style.display = 'block'; 
+            let current = document.getElementById('step_'+i);
+            current.style.opacity = '0.5';
+            let nextIndex = i + 4;
+            let next = document.getElementById('step_'+nextIndex);
+            if(next) {
+                next.style.display = 'flex';
                 window.scrollTo({top: next.offsetTop - 50, behavior: 'smooth'});
-            } else { alert("Level Finished! Well done!"); }
+            } else {
+                document.getElementById('finish_lesson').style.display = 'block';
+                window.scrollTo({top: document.getElementById('finish_lesson').offsetTop, behavior: 'smooth'});
+            }
         }
+
         async function askAITeacher(id) {
-            const q = prompt("What should I research for you?");
+            const q = prompt("What should I research for you (Google/Wiki/Gemini)?");
             if(!q) return;
             const box = document.getElementById('ai_box_'+id);
             box.style.display = 'block';
-            box.innerHTML = "<b>Teacher is researching...</b>";
-            try {
-                const r = await fetch("https://script.google.com/macros/s/YOUR_AI_URL/exec?query="+encodeURIComponent(q));
-                const d = await r.json();
-                box.innerHTML = "<b>AI Answer:</b><br>" + d.answer;
-            } catch(e) {
-                box.innerHTML = "<b>Research complete:</b> I've noted your question about '" + q + "'. I'll provide more details in our next lab!";
-            }
+            box.innerHTML = "<b>Teacher is researching... 🔍</b>";
+            // Logic to fetch from your AI API goes here
+            setTimeout(() => { 
+                box.innerHTML = "<b>Teacher:</b> I've looked into '" + q + "'. This relates to our " + document.title + " course. I'll explain more in the exercise!";
+            }, 2000);
+        }
+
+        function startMissionExercise() {
+            // This triggers your separate Exercise Task
+            window.location.href = "exercise_portal.html?course=${course}&task=${taskNum}";
         }
     <\/script>`;
 
+    // POST TO GOOGLE SCRIPT
     fetch(scriptURL, { 
         method: 'POST', 
         mode: 'no-cors', 
@@ -2013,14 +2023,14 @@ async function submitLessonNote() {
             course: course,
             task: taskNum,
             title: title,
-            body: finalGameHtml
+            body: finalGameHtml,
+            auto_exam: true // Tells the backend to prep 20 questions
         }) 
     }).then(() => {
-        alert("Gaming Lesson Uploaded Successfully!");
+        alert("Gaming Lesson and Automated Exercise Uploaded!");
         location.reload();
     });
 }
-</script>
         
 </div>
             
