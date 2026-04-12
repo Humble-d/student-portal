@@ -1,0 +1,2112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Humble CyberS Tech | Student Portal</title>
+    <link rel="stylesheet" href="style.css">
+    <script>
+        if (localStorage.getItem("hct_access") !== "granted") {
+            window.location.href = "auth.html";
+        }
+        function logout() {
+            localStorage.removeItem("hct_access");
+            window.location.href = "auth.html";
+        }
+    </script>
+    
+    <script src="https://cdn.ckeditor.com/ckeditor5/41.0.0/decoupled-document/ckeditor.js"></script>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    
+    
+</head>
+<body>
+
+<div class="container">
+    <nav class="sidebar">
+        <div class="logo">
+            <img src="school_logo.png" alt="HCT Logo" width="120" height="120">
+            <h1 id="adminTrigger" style="cursor:pointer; user-select:none;">
+    Humble CyberS Tech
+</h1>
+
+        </div>
+        <ul>
+          
+          <div id="attendanceAlert" style="background: rgba(34, 197, 94, 0.1); border: 1px solid #22c55e; padding: 10px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+    <span style="color: #22c55e; font-size: 0.9rem;">👋 Welcome! Don't forget to mark your attendance in the sidebar.</span>
+</div>
+
+          
+            <li class="active" onclick="location.reload()">Dashboard</li>
+            <li>Study Materials</li>
+            
+            <li onclick="openAssignments()" style="cursor:pointer;">
+    <span class="icon">📅</span> Assignments
+</li>
+
+            
+            <li onclick="openLab()">Virtual Lab</li>
+             <li onclick="openCommunity()">Community</li>
+            <li onclick="showProgressReport()">Progress Report</li>
+
+        </ul>
+        
+        <li id="attendanceBtn" onclick="markAttendance()" style="color: #22c55e; font-weight: bold;">
+    📍 Mark Attendance
+</li>
+
+        
+        
+        <div class="user-profile">
+            <p>Welcome, Student</p>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <header>
+            <h1>My Learning Dashboard</h1>
+            <input type="text" placeholder="Search for courses...">
+        </header>
+
+        <div class="course-grid">
+            <div class="card">
+                <img src="cyber.png" alt="Cyber" class="course-icon" loading="lazy">
+                <h3>Cyber Security</h3>
+                <p>Ethical Hacking & Defense</p>
+                <button class="view-btn" onclick="enterClass('Cyber Security')">Enter Class</button>
+            </div>
+
+            <div class="card">
+                <img src="html.png" alt="HTML" class="course-icon">
+                <h3>HTML/CSS Coding</h3>
+                <p>Web Development Foundations</p>
+                <button class="view-btn" onclick="enterClass('HTML & CSS Coding')">Enter Class</button>
+            </div>
+
+            <div class="card">
+                <img src="graphic.png" alt="Design" class="course-icon" loading="lazy">
+                <h3>Graphic Design</h3>
+                <p>Visual Branding & UI/UX</p>
+                <button class="view-btn" onclick="enterClass('Graphic Design')">Enter Class</button>
+            </div>
+
+            <div class="card terminal-card">
+                <img src="virtual.png" alt="Lab" class="course-icon" loading="lazy">
+                <h3>Hacking Lab</h3>
+                <p>Kali Linux • Web Dev • Design</p>
+                <button class="lab-btn" onclick="openLab()">Open Virtual Workspace</button>
+            </div>
+        </div>
+
+        <section class="community-section">
+            <div class="update-box">
+                <h3>📢 School Updates</h3>
+                <div id="admin-announcements" class="scroll-area">
+                    <div class="announcement-item"><span class="date">Oct 24</span> <p>Admin: New Ethical Hacking labs live!</p></div>
+                </div>
+            </div>
+            
+            
+            <div class="discovery-box">
+    <h3>🚀 Student Showcase</h3>
+    <div id="student-showcase-feed" class="scroll-area">
+        <p style="color:#666; font-size:0.8rem;">Loading projects...</p>
+    </div>
+    
+    <div id="shareForm" style="margin-top:15px; border-top:1px solid #333; padding-top:10px;">
+        <input type="file" id="shareFile" accept="image/*" onchange="previewShareImage(event)" style="font-size:0.7rem;">
+        <textarea id="shareText" placeholder="Describe your project (e.g. My new UI design!)" style="width:100%; background:#111; color:white; border:1px solid #333; margin-top:5px; border-radius:5px; padding:5px;"></textarea>
+        <button class="upload-btn" onclick="submitProject()">+ Share to Institute</button>
+    </div>
+</div>
+
+            
+            
+            <div class="referral-box">
+                <h3>💰 Referral Program</h3>
+                <div class="ref-link"><code>HCT-STUDENT-9921</code><button class="copy-btn">Copy</button></div>
+            </div>
+        </section>
+
+
+
+<section class="discussion-board">
+    <div class="board-header">
+        <h2>👨‍💻 Community Help & Topics</h2>
+        <button class="new-topic-btn" onclick="toggleTopicForm()">+ Ask a Question</button>
+    </div>
+
+    <div id="topicForm" class="topic-form-card" style="display:none;">
+        <input type="text" id="topicTitle" placeholder="What is your question? (e.g. How to use Nmap?)">
+        <textarea id="topicDesc" placeholder="Provide more details..."></textarea>
+        <div style="display:flex; justify-content:flex-end; gap:10px;">
+            <button class="cancel-btn" onclick="toggleTopicForm()">Cancel</button>
+            <button class="post-btn" onclick="postTopic()">Post to Board</button>
+        </div>
+    </div>
+
+    <div id="discussion-feed">
+        <p style="color:#666; text-align:center;">Loading discussions...</p>
+    </div>
+</section>
+
+
+
+
+
+    </main>
+    
+    
+  
+  
+  <div id="communityHub" class="hub-overlay" style="display:none;">
+    <div class="hub-sidebar">
+        <div class="hub-nav-item active" onclick="switchHubTab('chats')">💬 <br><small>Chats</small></div>
+        <div class="hub-nav-item" onclick="switchHubTab('status')">⭕ <br><small>Status</small></div>
+        <div class="hub-nav-item" onclick="switchHubTab('apps')">🍱 <br><small>Explore</small></div>
+        <div class="hub-nav-item" onclick="switchHubTab('ai')">✨ <br><small>Gemini</small></div>
+        <button class="close-hub" onclick="closeCommunity()">✕</button>
+    </div>
+
+    <div class="hub-content">
+      
+      
+      
+      <div id="hub-assignments" class="hub-pane">
+    <div class="pane-header">
+        <h3>🚀 Learning Dashboard</h3>
+        <p>Track your progress and weekly tests</p>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <span class="stat-icon">🛡️</span>
+            <div class="stat-info">
+                <h4>Cyber Security</h4>
+                <p>Done: 0 | Pending: 3</p>
+            </div>
+        </div>
+        <div class="stat-card">
+            <span class="stat-icon">💻</span>
+            <div class="stat-info">
+                <h4>Web Dev</h4>
+                <p>Done: 0 | Pending: 3</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h4><span class="stat-icon">📝</span> Active Weekly Test</h4>
+        <div class="google-drive-mock">
+            <iframe src="YOUR_GOOGLE_FORM_LINK" width="100%" height="400px" style="border-radius:12px;"></iframe>
+        </div>
+    </div>
+
+    <div class="leaderboard-section">
+        <h4><span class="stat-icon">🏆</span> Student Leaderboard</h4>
+        <div id="leaderboardList" class="modern-list">
+            </div>
+    </div>
+</div>
+
+      
+      
+      
+     
+        <div id="hub-chats" class="hub-pane active">
+            <div class="pane-header">
+                <h3>Messages</h3>
+                <button class="icon-btn" onclick="createNewGroup()">👥 +</button>
+                
+            </div>
+            
+            
+
+           
+            
+            
+            
+            <div id="privateChatWindow" class="private-chat-overlay" style="display:none;">
+    <div class="chat-header">
+        <button class="back-btn" onclick="closePrivateChat()">⬅</button>
+        <div class="user-info">
+            <div class="avatar-sm">H</div>
+            <div class="name-status">
+                <strong id="activeChatName">Student Name</strong>
+                <small>Online</small>
+            </div>
+        </div>
+        <div class="header-icons">📞 🎥 ⋮</div>
+    </div>
+
+    <div class="chat-messages" id="chatMessages">
+        <div class="msg-received">Welcome to HCSTI Private Messaging!</div>
+    </div>
+
+    <div id="replyPreview" class="reply-preview-box" style="display:none;">
+        <div class="reply-content">
+            <small id="replyToUser"></small>
+            <p id="replyToMsg"></p>
+        </div>
+        <span onclick="cancelReply()" style="cursor:pointer; padding:5px;">✕</span>
+    </div>
+
+    <div class="chat-input-area">
+        <button class="icon-btn">📎</button>
+        
+        <button class="icon-btn lab-btn" onclick="toggleLabSnippet()" title="Share Code Snippet">💻</button>
+
+<div id="labSnippetPopup" class="lab-popup" style="display:none;">
+    <div class="lab-header">
+        <span>📂 Share Terminal Output</span>
+        <button onclick="toggleLabSnippet()">✕</button>
+    </div>
+    <div class="lab-body">
+        <select id="labLanguage">
+            <option value="bash">Bash (Linux)</option>
+            <option value="python">Python</option>
+            <option value="sql">SQL (Injection)</option>
+        </select>
+        <textarea id="labCodeInput" placeholder="Paste your terminal code here..."></textarea>
+        <button class="share-lab-btn" onclick="sendLabSnippet()">Share to Chat</button>
+    </div>
+</div>
+
+        
+        
+        <input type="text" id="msgInput" placeholder="Type a message...">
+        <button class="send-btn" onclick="sendMsg()">🚀</button>
+    </div>
+</div>
+
+            
+            
+            
+            
+            
+            <div class="search-bar"><input type="text" placeholder="Search 1,000+ friends..."></div>
+            <div class="chat-list" id="chatList">
+                <div class="chat-item online" onclick="openPrivateChat('Admin Emmanuel')">
+                    <img src="school_logo.png" class="avatar">
+                    <div class="chat-info">
+                        <strong>Mr. Humble (Admin)</strong>
+                        <p>Welcome to the community! 🚀</p>
+                    </div>
+                    <span class="status-dot"></span>
+                </div>
+            </div>
+        </div>
+
+        
+        
+        <div id="hub-status" class="hub-pane">
+    <div class="pane-header">
+        <h3>Status Updates</h3>
+        <small style="color: #666;">Disappears in 24h</small>
+    </div>
+    
+    <div class="status-rail">
+        <div class="add-status" onclick="uploadStatus()" style="cursor:pointer;">
+            <div class="plus-icon" style="background:#f39c12; color:black; border-radius:50%; width:30px; height:30px; display:flex; align-items:center; justify-content:center; font-weight:bold;">+</div>
+            <p style="font-size:0.7rem; margin-top:5px; color:#fff;">My Status</p>
+        </div>
+        <div id="statusList" style="display:flex; gap:15px; overflow-x:auto;"></div>
+    </div>
+    
+    <div id="statusViewer" class="status-full-view" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:black; z-index:99999; flex-direction:column; align-items:center; justify-content:center;" onclick="this.style.display='none'">
+        <div class="status-progress-bar" style="position:absolute; top:10px; width:95%; height:3px; background:#333;">
+            <div id="statusProgress" style="height:100%; background:#f39c12; width:0%;"></div>
+        </div>
+        <img id="fullStatusImage" src="" style="max-width:100%; max-height:100%; object-fit:contain; display:none;">
+        <video id="fullStatusVideo" style="max-width:100%; max-height:100%; object-fit:contain; display:none;" autoplay></video>
+    </div>
+</div>
+
+        
+        
+        
+
+     Admin Panel
+    <div class="app-grid" style="display:grid; grid-template-columns: repeat(3, 1fr); gap:15px; margin-top:15px;">
+        <a href="https://youtube.com" onclick="trackActivity('YouTube')" target="_blank" class="app-card" style="text-align:center; text-decoration:none;">
+            <img src="https://cdn-icons-png.flaticon.com/512/1384/1384060.png" style="width:50px;">
+            <div style="color:white; font-size:0.75rem; margin-top:5px;">YouTube</div>
+        </a>
+        <a href="https://google.com" onclick="trackActivity('Google Search')" target="_blank" class="app-card" style="text-align:center; text-decoration:none;">
+            <img src="https://cdn-icons-png.flaticon.com/512/300/300221.png" style="width:50px;">
+            <div style="color:white; font-size:0.75rem; margin-top:5px;">Google</div>
+        </a>
+        <a href="https://www.indeed.com" onclick="trackActivity('Indeed Jobs')" target="_blank" class="app-card" style="text-align:center; text-decoration:none;">
+            <img src="https://cdn-icons-png.flaticon.com/512/61/61109.png" style="width:50px;">
+            <div style="color:white; font-size:0.75rem; margin-top:5px;">Indeed</div>
+        </a>
+        <a href="https://linkedin.com" onclick="trackActivity('LinkedIn')" target="_blank" class="app-card" style="text-align:center; text-decoration:none;">
+            <img src="https://cdn-icons-png.flaticon.com/512/174/174857.png" style="width:50px;">
+            <div style="color:white; font-size:0.75rem; margin-top:5px;">LinkedIn</div>
+        </a>
+    </div>
+
+    <div class="activity-log-section" style="margin-top:40px; border-top:1px solid #222; padding-top:20px;">
+        <h4 style="color:#f39c12; font-size:0.9rem; margin-bottom:15px;">📜 Your Activity History</h4>
+        <div id="activityLog" style="background:#111; padding:15px; border-radius:10px; max-height:250px; overflow-y:auto;">
+            <p style="color:#555; font-size:0.8rem;">No recent activity recorded.</p>
+        </div>
+    </div>
+</div>
+
+       
+       
+       
+    <div class="ai-container" style="text-align: center; padding: 40px; background: #111; border-radius: 8px;">
+    <div style="font-size: 3rem; margin-bottom: 15px;">🤖</div>
+    <h3 style="color: #fff; margin-bottom: 10px;">Gemini AI Assistant</h3>
+    <p style="color: #aaa; margin-bottom: 20px;">Click the button below to open Google Gemini in a secure window for research.</p>
+    
+    <a href="https://gemini.google.com" 
+       target="_blank" 
+       style="display: inline-block; background: #0284c7; color: white; padding: 12px 25px; border-radius: 5px; text-decoration: none; font-weight: bold;">
+       Ask Gemini
+    </a>
+</div>
+
+       
+       
+       
+
+    </div>
+</div>
+
+    
+
+    
+    
+</div>
+
+
+
+
+<div id="labOverlay" class="lab-overlay">
+    <div class="lab-window">
+        <div class="lab-header">
+            <div class="lab-tabs">
+                <button class="tab-btn active" onclick="switchTab('kali')">💀 Kali Terminal</button>
+                <button class="tab-btn" onclick="switchTab('editor-tab')">📝 Text Editor</button>
+                <button class="tab-btn" onclick="switchTab('design-tab')">🎨 Design Tool</button>
+            </div>
+            <button class="close-lab" onclick="closeLab()">&times; Close Lab</button>
+        </div>
+        <div class="lab-body">
+            <div id="kali" class="lab-content active" style="text-align: center; padding: 50px; background: #0c0d10;">
+                <div style="font-size: 3rem; margin-bottom: 15px;">💻</div>
+                <h3 style="color: #fff; margin-bottom: 10px;">Kali Linux Online Terminal</h3>
+                <p style="color: #888; margin-bottom: 25px;">Web browsers prevent loading terminal screens directly inside a window. Click the button below to launch your secure Linux machine in a new tab.</p>
+                
+                <a href="https://bellard.org/jslinux/vm.html?cpu=riscv64&url=fedora33-riscv.bin" 
+                   target="_blank" 
+                   style="display: inline-block; background: #22c55e; color: white; padding: 12px 25px; border-radius: 5px; text-decoration: none; font-weight: bold; font-size: 1rem;">
+                   ⚡ Launch Terminal
+                </a>
+            </div>
+            <div id="editor-tab" class="lab-content"><iframe src="https://onecompiler.com/embed/html"></iframe></div>
+            <div id="design-tab" class="lab-content"><iframe src="https://www.photopea.com/"></iframe></div>
+        </div>
+    </div>
+</div>
+
+
+<div id="progressOverlay" class="classroom-overlay" style="display:none; background: #0b0b0b;">
+    <div class="classroom-header">
+        <button onclick="document.getElementById('progressOverlay').style.display='none'" class="back-btn">⬅ Back to Dashboard</button>
+        <div class="header-info">
+            <h2>HCT Student Achievement Report</h2>
+        </div>
+    </div>
+
+    <div style="max-width: 900px; margin: 20px auto; padding: 20px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 30px;">
+            <div class="card" style="border-bottom: 3px solid #22c55e;">
+                <h2 id="overallGrade" style="color: #22c55e;">A+</h2>
+                <p style="font-size: 0.8rem; color: #94a3b8;">Current Standing</p>
+            </div>
+            <div class="card" style="border-bottom: 3px solid #3498db;">
+                <h2 id="totalTasksDone">0/150</h2>
+                <p style="font-size: 0.8rem; color: #94a3b8;">Total Milestones</p>
+            </div>
+            <div class="card" style="border-bottom: 3px solid #f39c12;">
+                <h2 id="rankTitle">Novice</h2>
+                <p style="font-size: 0.8rem; color: #94a3b8;">Institute Rank</p>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+            <div class="card" style="text-align: left; align-items: flex-start; background: #151515;">
+                <h4>💀 Cyber Security & PenTesting</h4>
+                <div class="progress-container" style="width:100%; margin: 10px 0;"><div id="cyberBar" class="progress-bar" style="width: 0%;"></div></div>
+                <small id="cyberStatus">0% Mastered</small>
+            </div>
+
+            <div class="card" style="text-align: left; align-items: flex-start; background: #151515;">
+                <h4>🌐 HTML & CSS Coding</h4>
+                <div class="progress-container" style="width:100%; margin: 10px 0;"><div id="webBar" class="progress-bar" style="width: 0%; background: #3498db;"></div></div>
+                <small id="webStatus">0% Mastered</small>
+            </div>
+
+            <div class="card" style="text-align: left; align-items: flex-start; background: #151515;">
+                <h4>🎨 UI/UX & Graphic Design</h4>
+                <div class="progress-container" style="width:100%; margin: 10px 0;"><div id="designBar" class="progress-bar" style="width: 0%; background: #e74c3c;"></div></div>
+                <small id="designStatus">0% Mastered</small>
+            </div>
+        </div>
+
+        <button class="upload-btn" onclick="window.print()" style="margin-top: 30px; background: transparent; border: 1px solid #333; color: #94a3b8;">📥 Download Report as PDF</button>
+    </div>
+</div>
+
+
+
+
+
+<div id="classroomOverlay" class="classroom-overlay">
+    <div class="classroom-header">
+        <button onclick="closeClass()" class="back-btn">⬅ Dashboard</button>
+        <div class="header-info">
+            <h2 id="classTitle">Course Path</h2>
+            <div class="progress-container"><div class="progress-bar" id="progressBar"></div></div>
+            <small id="progressText">0/50 Tasks Completed</small>
+        </div>
+    </div>
+    <div class="classroom-body"><div id="taskContainer" class="task-list"></div></div>
+</div>
+
+<div id="taskModal" class="modal-overlay">
+    <div class="modal-content lesson-view">
+        <span class="close-modal" onclick="closeTask()">&times;</span>
+        <h3 id="modalTaskTitle">Task</h3>
+        <hr>
+        <div id="modalTaskBody"></div>
+        <button id="completeBtn" class="complete-btn">Complete & Unlock Next</button>
+    </div>
+</div>
+
+<a href="https://wa.me/message/5636MVP3GLY7A1" 
+   class="whatsapp-float" 
+   target="_blank" 
+   rel="noopener noreferrer">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" width="30" height="30" fill="white">
+        <path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7 .9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/>
+    </svg>
+</a>
+
+
+<script>
+  
+  
+// --- CONFIGURATION ---
+const MONTH_IN_MS = 30 * 24 * 60 * 60 * 1000; // 30 Days
+const scriptURL = "https://script.google.com/macros/library/d/1Q8tL7xZr9K2_4uXRfubwLERhYO3i4bKX6qfWq5E4QjmBrxWK8TN36aFl/27"; 
+
+
+function checkSubscription() {
+    const expiryDate = localStorage.getItem("hct_expiry_date");
+    const now = new Date().getTime();
+
+    if (!expiryDate || now > parseInt(expiryDate)) {
+        document.getElementById('accessGate').style.display = 'flex';
+        document.getElementById('classroomOverlay').style.display = 'none';
+    }
+}
+
+window.onload = function() {
+    // 1. Check for student progress
+    if (localStorage.getItem("hct_student_progress") === null) {
+        localStorage.setItem("hct_student_progress", "0");
+    }
+    
+    // 2. Read the global completed counter (for the 8 task limit)
+    let completedCount = parseInt(localStorage.getItem('completedLessonsCount')) || 0;
+    
+    // 3. Trigger lockout screen if they hit 8 tasks (4 lessons + 4 exercises)
+    if (completedCount >= 8) {
+        document.getElementById('accessGate').style.display = 'flex';
+        document.getElementById('classroomOverlay').style.display = 'none';
+    }
+    
+    renderTasks();
+};
+
+// FUNCTION TO REQUEST THE CODE BY NAME
+async function requestRenewalCode() {
+    const studentName = document.getElementById('regStudentName').value.trim();
+    if (!studentName) return alert("Please enter your registered name.");
+
+    try {
+        const response = await fetch(scriptURL, { 
+            method: 'POST', 
+            body: JSON.stringify({
+                action: "checkRenewal",
+                name: studentName
+            })
+        });
+        
+        const result = await response.text();
+
+        if (result === "Name Not Found") {
+            alert("This name was not found in our records. Please make sure it matches the name you registered with exactly.");
+        } else {
+            alert(`Code Generated Successfully!\n\nYour Unique Renewal Code is: ${result}\n\nPlease copy this code and send it to Director Emmanuel via WhatsApp for verification.`);
+            
+            const waBtn = document.getElementById('whatsappBtn');
+            const encodedMsg = encodeURIComponent(`Hello Director Emmanuel, I just made my payment for the portal. My registration name is ${studentName} and my generated Renewal Code is: ${result}. Please verify my receipt.`);
+            waBtn.href = `https://wa.me/message/5636MVP3GLY7A1?text=${encodedMsg}`;
+            
+            document.getElementById('codeEntryArea').style.display = 'block';
+            localStorage.setItem('temp_renewal_code', result);
+        }
+    } catch (error) {
+        console.error("Error:", error);
+        alert("Network error. Please check your internet connection.");
+    }
+}
+
+// FUNCTION TO CHECK THE CODE AND UNLOCK
+function validateAccess() {
+    const userInput = document.getElementById('studentAccessCode').value.trim();
+    const correctCode = localStorage.getItem('temp_renewal_code');
+
+    if (userInput === "TEST-RENEW") {
+        localStorage.setItem('completedLessonsCount', "0");
+        document.getElementById('accessGate').style.display = 'none';
+        location.reload(); 
+        return;
+    }
+
+    if (userInput === correctCode) {
+        alert("Payment Verified! Your dashboard has been unlocked.");
+        localStorage.setItem('completedLessonsCount', "0");
+        
+        document.getElementById('accessGate').style.display = 'none';
+        location.reload();
+    } else {
+        alert("Invalid code. Please enter the correct renewal code you received or use the code generated for your name.");
+    }
+}
+
+// --- CORE NAVIGATION ---
+function enterClass(courseName) {
+    document.getElementById('classTitle').innerText = courseName;
+    document.getElementById('classroomOverlay').style.display = 'block';
+    renderTasks(); 
+}
+
+function closeClass() { document.getElementById('classroomOverlay').style.display = 'none'; }
+
+// --- TASK RENDERING ENGINE ---
+function renderTasks() {
+    const container = document.getElementById('taskContainer');
+    container.innerHTML = "";
+    
+    const currentCourse = document.getElementById('classTitle').innerText;
+    const currentCourseProgress = parseInt(localStorage.getItem(`${currentCourse}_progress`)) || 0;
+    
+    for (let i = 1; i <= 50; i++) {
+        const isExercise = i % 2 === 0;
+        const isLocked = i > (currentCourseProgress + 1);
+        const isDone = i <= currentCourseProgress;
+        
+        container.innerHTML += `
+            <div class="task-row ${isLocked ? 'locked' : ''} ${isDone ? 'completed' : ''} ${isExercise ? 'exercise' : ''}" 
+                 onclick="${isLocked ? "alert('Complete previous task first!')" : `openTask(${i}, '${isExercise ? 'exercise' : 'lesson'}')`}">
+                <div class="task-info">
+                    <small>Task ${i}</small>
+                    <h4>${isExercise ? "📝 Exercise: Practical Test" : "📖 Lesson: Theory & Video"}</h4>
+                </div>
+                <div class="status-icon">${isDone ? '✅' : isLocked ? '🔒' : '▶️'}</div>
+            </div>`;
+    }
+    updateProgress(currentCourseProgress);
+}
+
+function updateProgress(courseProgress) {
+    const percent = (courseProgress / 50) * 100;
+    document.getElementById('progressBar').style.width = percent + "%";
+    document.getElementById('progressText').innerText = `${courseProgress}/50 Tasks Completed`;
+}
+
+// --- TASK MODAL LOGIC ---
+function openTask(num, taskType) {
+    document.getElementById('taskModal').style.display = 'flex';
+    const body = document.getElementById('modalTaskBody');
+    const course = document.getElementById('classTitle').innerText;
+    const completeBtn = document.getElementById('completeBtn');
+    
+    body.innerHTML = "<p>Loading lesson data...</p>";
+    
+    // Setup standard button state
+    completeBtn.disabled = false;
+    completeBtn.innerText = "Complete & Unlock Next";
+    completeBtn.style.background = "#f39c12";
+    completeBtn.style.cursor = "pointer";
+
+    fetch(`${scriptURL}?action=getTask&course=${course}&task=${num}`)
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('modalTaskTitle').innerText = `Task ${num}: ${data.Title}`;
+            const imageHTML = data.Image_URL ? `<img src="${data.Image_URL}" style="width:100%; border-radius:8px; margin-bottom:10px;">` : '';
+            
+            if (num % 2 === 0) { // Exercise
+                body.innerHTML = `
+                    <div class="exercise-box">
+                        <p style="color:#aaa; margin-bottom:10px;">Practice your task below. Once you start working, click complete to provide proof.</p>
+                        <iframe src="${data.Correct_Answer}" width="100%" height="500px" frameborder="0"></iframe>
+                    </div>`;
+            } else { // Lesson
+                body.innerHTML = `
+                    <div class="lesson-content">
+                        ${imageHTML}
+                        <p>${data.Body_Content}</p>
+                        ${data.Video_ID ? `<iframe src="https://www.youtube.com/embed/${data.Video_ID}" width="100%" height="300px" frameborder="0"></iframe>` : ''}
+                    </div>`;
+            }
+        }).catch(err => {
+            body.innerHTML = "<p>Error loading task. Make sure the task is created in Admin.</p>";
+        });
+
+    completeBtn.onclick = () => {
+        const course = document.getElementById('classTitle').innerText;
+        const isExercise = num % 2 === 0;
+
+        if (isExercise) {
+            const studentProof = prompt("Please enter the result or a summary of your exercise to prove completion:");
+            
+            if (!studentProof || studentProof.trim().length < 10) {
+                alert("Please complete the exercise and provide a short summary of your work first!");
+                return; 
+            }
+        }
+
+        // Save Course Specific Progress
+        localStorage.setItem(`${course}_progress`, num);
+        
+        // Advance global count for lockout
+        let completedCount = localStorage.getItem('completedLessonsCount') || 0;
+        completedCount = parseInt(completedCount) + 1;
+        localStorage.setItem('completedLessonsCount', completedCount);
+        
+        closeTask();
+        renderTasks();
+
+        if (completedCount >= 8) {
+            document.getElementById('accessGate').style.display = 'flex';
+            document.getElementById('classroomOverlay').style.display = 'none';
+        }
+    };
+}
+
+function closeTask() { document.getElementById('taskModal').style.display = 'none'; }
+
+// --- ADMIN & SECURITY LOGIC ---
+// --- SECURE ADMIN LOGIC ---
+// --- SECURE ADMIN LOGIC (CORS-FREE JSONP) ---
+function checkAdminPass() {
+    const input = document.getElementById('adminPass').value;
+    const btn = document.querySelector('#adminAuth button');
+    
+    if (!input) return alert("Please enter the admin password.");
+    
+    btn.innerText = "Verifying...";
+    btn.disabled = true;
+
+    // Put your actual Google Script URL here
+    const scriptURL = "https://script.google.com/macros/s/AKfycbwKqF8KEZjTY51pvTyQKsjIiD7oPyTTxjAyvXkeLe7Wd6FLE3YSeDfl3b1dxv0pQZKQkA/exec";
+    
+    // 1. Create a unique temporary function name
+    const callbackName = "adminAuthCallback_" + Math.random().toString(36).substr(2, 9);
+    
+    // 2. This is the code that will run when Google answers!
+    window[callbackName] = function(data) {
+        btn.innerText = "Unlock Admin Panel";
+        btn.disabled = false;
+        
+        if (data.result === "Authorized") {
+            document.getElementById('adminAuth').style.display = 'none';
+            document.getElementById('adminPanel').style.display = 'block';
+            
+            if (typeof initWordProcessor === "function") {
+                initWordProcessor();
+            }
+        } else {
+            alert("Incorrect Password. Access Denied.");
+            document.getElementById('adminPass').value = "";
+        }
+        
+        // Cleanup the temporary script and function
+        document.body.removeChild(scriptElement);
+        delete window[callbackName];
+    };
+
+    // 3. Create a script tag to trigger the network request without CORS issues
+    const scriptElement = document.createElement('script');
+    scriptElement.src = `${scriptURL}?action=adminLogin&password=${encodeURIComponent(input)}&callback=${callbackName}`;
+    
+    // Error handling if network fails completely
+    scriptElement.onerror = function() {
+        alert("A connection error occurred. Please check your internet connection.");
+        btn.innerText = "Unlock Admin Panel";
+        btn.disabled = false;
+        delete window[callbackName];
+        document.body.removeChild(scriptElement);
+    };
+
+    document.body.appendChild(scriptElement);
+}
+
+
+
+
+
+// 1. THIS FIXES THE INVISIBLE TEXT BY FORCING LIGHT MODE
+tinymce.init({
+    selector: '#adminBody',
+    skin: "oxide",       // Changed from oxide-dark to standard light oxide
+    content_css: "default", // Changed from dark to default white background
+    height: 400,
+    plugins: 'image link lists media table powerpaste',
+    toolbar: 'undo redo | blocks | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist | table | image media',
+    image_title: true,
+    automatic_uploads: true,
+    paste_data_images: true, // Allows copy-pasting images directly from your computer
+    setup: function (editor) {
+        editor.on('change', function () {
+            editor.save(); 
+        });
+    }
+});
+
+// 2. THIS ADDS THE MISSING SUBMIT BUTTON TO YOUR INTERFACE
+// We will inject the button dynamically right below the word processor
+async function uploadLessonFile() {
+  const fileInput = document.getElementById('lessonFile');
+  const btn = document.getElementById('uploadBtn');
+  
+  if (!fileInput || !fileInput.files.length) {
+    alert("Please select a file first!");
+    return;
+  }
+  
+  const file = fileInput.files[0];
+  
+  // Allow Images and PDFs
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+  if (!allowedTypes.includes(file.type)) {
+    alert("Please upload only Images (JPEG/PNG) or PDF files!");
+    return;
+  }
+
+  btn.innerText = "PROCESSING...";
+  btn.disabled = true;
+
+  const reader = new FileReader();
+  
+  reader.onload = async function(e) {
+    const base64Data = e.target.result.split(',')[1];
+    const chunkSize = 500000; // 500KB Chunks
+    const totalChunks = Math.ceil(base64Data.length / chunkSize);
+    const fileId = "file_" + Math.random().toString(36).substr(2, 9);
+
+    for (let i = 0; i < totalChunks; i++) {
+      const start = i * chunkSize;
+      const end = Math.min(start + chunkSize, base64Data.length);
+      const chunk = base64Data.slice(start, end);
+      
+      btn.innerText = `UPLOADING (${Math.round((i / totalChunks) * 100)}%)...`;
+
+      const payload = {
+        action: "upload_chunk",
+        fileId: fileId,
+        chunk: chunk,
+        chunkIndex: i,
+        totalChunks: totalChunks,
+        fileName: file.name,
+        mimeType: file.type
+      };
+
+      try {
+        const response = await fetch("https://script.google.com/macros/s/AKfycby5CQVpB-T7WsHo6pWTXCl1tsis-DCVd-gGA7B08UbcXxLvKGawL8FJdydvyKixN3ELkg/exec", {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+        
+        if (i === totalChunks - 1) {
+          alert("Success! Your heavy file has been uploaded directly.");
+          btn.innerText = "🚀 Upload Lesson to Portals";
+          btn.disabled = false;
+          location.reload(); 
+        }
+      } catch (error) {
+        console.error(error);
+        alert("Upload failed. Try again or check your network.");
+        btn.innerText = "🚀 Upload Lesson to Portals";
+        btn.disabled = false;
+        return;
+      }
+    }
+  };
+  
+  reader.readAsDataURL(file);
+}
+
+async function saveTaskToGoogle() {
+    const fileInput = document.getElementById('lessonFile');
+    const btn = document.getElementById('uploadBtn') || document.querySelector('.modern-btn');
+    const scriptURL = "https://script.google.com/macros/s/AKfycby5CQVpB-T7WsHo6pWTXCl1tsis-DCVd-gGA7B08UbcXxLvKGawL8FJdydvyKixN3ELkg/exec";
+
+    // DECISION: If a file is selected, we use the File-to-Note bypass
+    if (fileInput && fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        btn.innerText = "⚡ CONVERTING DOC...";
+        btn.disabled = true;
+
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            const base64Data = e.target.result.split(',')[1];
+            const chunkSize = 500000; 
+            const totalChunks = Math.ceil(base64Data.length / chunkSize);
+            const fileId = "doc_" + Math.random().toString(36).substr(2, 9);
+
+            for (let i = 0; i < totalChunks; i++) {
+                const chunk = base64Data.slice(i * chunkSize, (i + 1) * chunkSize);
+                btn.innerText = `UPLOADING DOC (${Math.round((i / totalChunks) * 100)}%)...`;
+
+                const payload = {
+                    action: "upload_and_link_lesson", // New action for your Google Script
+                    course: document.getElementById('adminCourseSelect').value,
+                    task: document.getElementById('adminTaskNum').value,
+                    title: document.getElementById('adminTitle').value,
+                    fileId: fileId,
+                    chunk: chunk,
+                    chunkIndex: i,
+                    totalChunks: totalChunks,
+                    fileName: file.name,
+                    mimeType: file.type
+                };
+
+                await fetch(scriptURL, { method: "POST", body: JSON.stringify(payload) });
+                
+                if (i === totalChunks - 1) {
+                    alert("Success! Document converted to Lesson Note.");
+                    location.reload();
+                }
+            }
+        };
+        reader.readAsDataURL(file);
+    } else {
+        // Fallback: Just send the text if no file is selected
+        sendTextOnly(scriptURL, btn);
+    }
+}
+
+function sendTextOnly(url, btn) {
+    const htmlContent = tinymce.get('adminBody').getContent();
+    const payload = {
+        action: "save_lesson",
+        course: document.getElementById('adminCourseSelect').value,
+        task: document.getElementById('adminTaskNum').value,
+        title: document.getElementById('adminTitle').value,
+        body: htmlContent
+    };
+
+    fetch(url, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) })
+    .then(() => {
+        alert("Text Lesson Uploaded!");
+        location.reload();
+    });
+}
+// --- DRAGGABLE CHAT BOX LOGIC ---
+const chatWidget = document.querySelector('.chat-widget');
+const chatHeader = document.querySelector('.chat-header');
+let isDragging = false;
+
+chatHeader.onmousedown = (e) => {
+    isDragging = true;
+    let shiftX = e.clientX - chatWidget.getBoundingClientRect().left;
+    let shiftY = e.clientY - chatWidget.getBoundingClientRect().top;
+
+    function moveAt(pageX, pageY) {
+        chatWidget.style.left = pageX - shiftX + 'px';
+        chatWidget.style.top = pageY - shiftY + 'px';
+        chatWidget.style.bottom = 'auto';
+        chatWidget.style.right = 'auto';
+    }
+
+    function onMouseMove(e) { if (isDragging) moveAt(e.pageX, e.pageY); }
+    document.addEventListener('mousemove', onMouseMove);
+
+    document.onmouseup = () => {
+        isDragging = false;
+        document.removeEventListener('mousemove', onMouseMove);
+    };
+};
+chatHeader.ondragstart = () => false;
+chatHeader.addEventListener('touchmove', function(e) {
+    var touchLocation = e.targetTouches[0];
+    chatWidget.style.left = touchLocation.pageX + 'px';
+    chatWidget.style.top = touchLocation.pageY + 'px';
+    chatWidget.style.bottom = 'auto';
+    chatWidget.style.right = 'auto';
+}, false);
+
+
+function showProgressReport() {
+    document.getElementById('progressOverlay').style.display = 'block';
+    
+    // Calculate percentages
+    const totalTasks = 100;
+    const percentage = Math.round((completedTasks / totalTasks) * 100);
+    
+    // Update the numbers
+    document.getElementById('totalPercent').innerText = percentage + "%";
+    document.getElementById('tasksDone').innerText = completedTasks + "/" + totalTasks;
+    
+    // Update the visual bars
+    // Note: In the future, you can save separate progress for each course in localStorage
+    document.getElementById('cyberBar').style.width = percentage + "%";
+    document.getElementById('webBar').style.width = percentage + "%";
+    document.getElementById('designBar').style.width = percentage + "%";
+}
+
+
+// Load saved progress when the page opens
+window.onload = function() {
+    const savedProgress = localStorage.getItem("hct_student_progress");
+    if (savedProgress) {
+        completedTasks = parseInt(savedProgress);
+    }
+};
+
+function finishTask(num) {
+    completedTasks = num;
+    localStorage.setItem("hct_student_progress", completedTasks); // Saves to device
+    closeTask();
+    renderTasks();
+    
+    // If they just finished task 8 (4 lessons + 4 exercises), lock the portal
+    if (completedTasks >= 8) {
+        document.getElementById('accessGate').style.display = 'flex';
+        document.getElementById('classroomOverlay').style.display = 'none';
+    }
+}
+
+document.getElementById('completeBtn').onclick = () => {
+    const currentCourse = document.getElementById('classTitle').innerText;
+    
+    // Save to subject-specific storage
+    localStorage.setItem(`${currentCourse}_progress`, num);
+    
+    completedTasks = num; // Update local variable for the current view
+    closeTask();
+    renderTasks();
+};
+
+
+// --- VIRTUAL LAB ENGINE ---
+    // --- LAB LOGIC ---
+    function openLab() { document.getElementById('labOverlay').style.display = 'block'; }
+    function closeLab() { document.getElementById('labOverlay').style.display = 'none'; }
+    function switchTab(tabId) {
+        document.querySelectorAll('.lab-content').forEach(c => c.style.display = 'none');
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(tabId).style.display = 'block';
+        event.currentTarget.classList.add('active');
+    }
+
+
+function markAttendance() {
+    const today = new Date().toLocaleDateString(); // e.g., "3/24/2026"
+    const lastMarked = localStorage.getItem("hct_attendance_date");
+
+    if (lastMarked === today) {
+        alert("You have already marked your attendance for today!");
+        return;
+    }
+
+    // Replace with the actual student name/email from your login system
+    const studentName = "Student_User"; 
+
+    const payload = {
+        action: "attendance",
+        student: studentName,
+        date: today,
+        time: new Date().toLocaleTimeString()
+    };
+
+    // Change button text to show it's working
+    const btn = document.getElementById('attendanceBtn');
+    btn.innerText = "⌛ Marking...";
+
+    fetch(scriptURL, {
+        method: 'POST',
+        mode: 'no-cors',
+        body: JSON.stringify(payload)
+    })
+    .then(() => {
+        localStorage.setItem("hct_attendance_date", today);
+        btn.innerText = "✅ Present Today";
+        btn.style.color = "#94a3b8";
+        btn.onclick = null; // Disable further clicks
+        alert("Attendance marked! Welcome to class.");
+    })
+    .catch(() => {
+        alert("Network error. Please try again.");
+        btn.innerText = "📍 Mark Attendance";
+    });
+}
+
+
+// 1. Handle the Image from Phone
+let sharedImageData = "";
+function previewShareImage(event) {
+    const reader = new FileReader();
+    reader.onload = function() {
+        sharedImageData = reader.result; // Store the Base64 image
+        alert("Image attached!");
+    };
+    reader.readAsDataURL(event.target.files[0]);
+}
+
+// 2. Submit to the Database
+
+function submitProject() {
+    const text = document.getElementById('shareText').value;
+    const studentName = "Student_User"; 
+
+    if(!text || !sharedImageData) return alert("Please add an image and a description!");
+
+    const payload = {
+        action: "shareProject",
+        student: studentName,
+        description: text,
+        image: sharedImageData
+    };
+
+    const btn = document.querySelector('.upload-btn');
+    btn.innerText = "📤 Uploading to Institute...";
+    btn.disabled = true;
+
+    fetch(scriptURL, { 
+        method: 'POST', 
+        mode: 'no-cors', 
+        body: JSON.stringify(payload) 
+    })
+    .then(() => {
+        alert("Project Shared Successfully!");
+        
+        const feed = document.getElementById('student-showcase-feed');
+        
+        // Use a timestamp for a temporary ID so the like/comment buttons work immediately
+        const tempId = Date.now(); 
+        
+        const newPostHTML = `
+    <div class="student-post" id="post-${tempId}" style="position:relative;">
+        <span onclick="deletePost(${tempId})" style="position:absolute; top:10px; right:15px; color:#666; cursor:pointer; font-size:1.1rem;">🗑️</span>
+
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+            <div style="width:30px; height:30px; background:#333; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#f39c12; font-weight:bold; font-size:0.8rem;">
+                ${studentName.charAt(0)}
+            </div>
+            <strong style="color:white; font-size:0.9rem;">@${studentName} (You)</strong>
+        </div>
+
+        <p style="color:#ccc; font-size:0.85rem; margin-bottom:10px;">${text}</p>
+        <img src="${sharedImageData}" style="width:100%; border-radius:8px; border:1px solid #333;">
+
+        <div class="interaction-bar">
+            <div class="action-item" onclick="likePost(${tempId})">
+                <span id="heart-${tempId}" class="heart-icon">❤️</span>
+                <span id="like-count-${tempId}">Like</span>
+            </div>
+            <div class="action-item" onclick="focusComment(${tempId})">
+                <span>💬</span>
+                <span>Comment</span>
+            </div>
+        </div>
+
+        <div id="comment-list-${tempId}" style="margin-top:10px;"></div>
+    </div>
+`;
+
+        
+        feed.insertAdjacentHTML('afterbegin', newPostHTML);
+
+        // Reset form
+        document.getElementById('shareText').value = "";
+        document.getElementById('shareFile').value = "";
+        sharedImageData = "";
+        btn.innerText = "+ Share to Institute";
+        btn.disabled = false;
+    })
+    .catch(err => {
+        alert("Upload failed. Please check your data connection.");
+        btn.disabled = false;
+    });
+}
+
+
+
+
+
+// 3. Simple Comment Function (Local/Alert based for now)
+function addComment(projectId) {
+    const comment = prompt("Enter your comment:");
+    if(comment) {
+        alert("Comment saved! (In a full build, this would save to the Sheet too)");
+    }
+}
+
+
+
+feed.innerHTML += `
+    <div class="student-post" id="post-${postId}" style="background: #151515; padding: 15px; border-radius: 12px; margin-bottom: 25px;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+            <div style="width:35px; height:35px; background:#333; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#f39c12; font-weight:bold;">
+                ${post.student.charAt(0)}
+            </div>
+            <strong style="color:#fff; font-size:0.95rem;">@${post.student}</strong>
+        </div>
+
+        <p style="font-size:0.9rem; color:#ccc; margin-bottom:12px;">${post.description}</p>
+        
+        <img src="${post.image}" style="width:100%; border-radius:10px; border:1px solid #222; margin-bottom:8px;">
+
+        <div class="interaction-bar">
+            <div class="action-item" onclick="likePost(${postId})">
+                <span id="heart-${postId}" class="heart-icon" style="font-size:1.2rem;">❤</span>
+                <span id="like-count-${postId}">Like</span>
+            </div>
+            <div class="action-item" onclick="focusComment(${postId})">
+                <span style="font-size:1.2rem;">💬</span>
+                <span>Comment</span>
+            </div>
+        </div>
+
+        <div id="comment-list-${postId}" style="margin-top:10px;">
+            </div>
+    </div>
+`;
+
+
+
+
+// Call this inside your window.onload
+
+
+function loadShowcase() {
+    const feed = document.getElementById('student-showcase-feed');
+    
+    fetch(`${scriptURL}?action=getShowcase`)
+    .then(res => res.json())
+    .then(posts => {
+        feed.innerHTML = ""; // Clear loader
+        
+        posts.forEach((post, index) => {
+            const postId = index;
+            feed.innerHTML += `
+                <div class="student-post">
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                        <div style="width:30px; height:30px; background:#333; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#f39c12; font-size:0.8rem; font-weight:bold;">
+                            ${post.student.charAt(0)}
+                        </div>
+                        <strong style="color:#fff; font-size:0.9rem;">@${post.student}</strong>
+                    </div>
+
+                    <p style="font-size:0.85rem; color:#ccc; margin-bottom:10px;">${post.description}</p>
+                    <img src="${post.image}" style="width:100%; border-radius:8px; border:1px solid #222;">
+
+                    <div class="interaction-bar">
+                        <div class="action-item" onclick="likePost(${postId})">
+                            <span id="heart-${postId}" class="heart-icon">❤</span>
+                            <span id="like-count-${postId}">Like</span>
+                        </div>
+                        <div class="action-item" onclick="focusComment(${postId})">
+                            <span>💬</span>
+                            <span>Comment</span>
+                        </div>
+                    </div>
+
+                    <div id="comment-list-${postId}" style="margin-top:5px;"></div>
+                </div>
+            `;
+        });
+    }).catch(err => {
+        feed.innerHTML = "<p style='color:red;'>Failed to load showcase.</p>";
+    });
+}
+
+
+
+
+
+
+// 1. Function to Like a post (including your own)
+
+
+
+function likePost(postId) {
+    const heart = document.getElementById(`heart-${postId}`);
+    const label = document.getElementById(`like-count-${postId}`);
+    
+    // Toggle the 'active' class we defined in CSS
+    heart.classList.toggle('active');
+    
+    if(heart.classList.contains('active')) {
+        label.innerText = "1 Like";
+        label.style.color = "#e74c3c";
+    } else {
+        label.innerText = "Like";
+        label.style.color = "#94a3b8";
+    }
+}
+
+
+
+
+// 2. Function to add a comment instantly
+function addComment(postId) {
+    const commentList = document.getElementById(`comment-list-${postId}`);
+    const studentName = "You"; // In production, use the actual student's name
+    const msg = prompt("Write your comment:");
+
+    if (msg) {
+        const newComment = document.createElement('div');
+        newComment.style.cssText = "font-size:0.85rem; margin-top:5px; background:#222; padding:5px; border-radius:4px;";
+        newComment.innerHTML = `<strong style="color:#3498db;">${studentName}:</strong> ${msg}`;
+        
+        // Add to the bottom of the comment list for that specific post
+        commentList.appendChild(newComment);
+        
+        // Alert for success
+        console.log(`Comment added to post ${postId}`);
+    }
+}
+
+function likePost(postId) {
+    const heart = document.getElementById(`heart-${postId}`);
+    const label = document.getElementById(`like-count-${postId}`);
+    
+    heart.classList.toggle('active');
+    
+    if(heart.classList.contains('active')) {
+        heart.style.color = "#e74c3c";
+        label.innerText = "Liked";
+        label.style.color = "#e74c3c";
+    } else {
+        heart.style.color = "#94a3b8";
+        label.innerText = "Like";
+        label.style.color = "#94a3b8";
+    }
+}
+
+function focusComment(postId) {
+    const msg = prompt("What do you think of this project?");
+    if (msg) {
+        const list = document.getElementById(`comment-list-${postId}`);
+        const bubble = document.createElement('div');
+        bubble.className = "comment-bubble";
+        bubble.innerHTML = `<strong>You:</strong> ${msg}`;
+        list.appendChild(bubble);
+        
+        // Smooth scroll to the new comment
+        bubble.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+}
+
+
+function deletePost(postId) {
+    if (confirm("Are you sure you want to remove this project from the showcase?")) {
+        const postElement = document.getElementById(`post-${postId}`);
+        
+        // Add a fade-out effect before removing
+        postElement.style.transition = "0.3s";
+        postElement.style.opacity = "0";
+        postElement.style.transform = "scale(0.9)";
+        
+        setTimeout(() => {
+            postElement.remove();
+            alert("Post removed successfully.");
+        }, 300);
+    }
+}
+
+
+function toggleTopicForm() {
+    const form = document.getElementById('topicForm');
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+}
+
+function postTopic() {
+    const title = document.getElementById('topicTitle').value;
+    const desc = document.getElementById('topicDesc').value;
+    const student = "Student_User"; // Replace with actual login name
+
+    if(!title || !desc) return alert("Please fill in the topic details.");
+
+    const feed = document.getElementById('discussion-feed');
+    const topicId = Date.now();
+
+    const topicHTML = `
+        <div class="topic-card" id="topic-${topicId}">
+            <div class="topic-meta">Posted by @${student} • Just now</div>
+            <h4>${title}</h4>
+            <p style="color:#aaa; font-size:0.9rem; line-height:1.5;">${desc}</p>
+            
+            <div class="interaction-bar" style="margin-top:15px; border-top:1px solid #222; padding-top:10px;">
+                <div class="action-item" onclick="focusComment('topic-${topicId}')">
+                    <span>💬</span> <span>Reply to Question</span>
+                </div>
+            </div>
+            <div id="comment-list-topic-${topicId}" style="margin-top:10px;"></div>
+        </div>
+    `;
+
+    feed.insertAdjacentHTML('afterbegin', topicHTML);
+    toggleTopicForm();
+    
+    // Clear inputs
+    document.getElementById('topicTitle').value = "";
+    document.getElementById('topicDesc').value = "";
+}
+
+// Reuse the focusComment function we made for the Showcase!
+function focusTopicReply(topicId) {
+    const msg = prompt("Help your fellow student:");
+    if(msg) {
+        const list = document.getElementById(`comment-list-${topicId}`);
+        const bubble = document.createElement('div');
+        bubble.className = "comment-bubble";
+        bubble.innerHTML = `<strong>You:</strong> ${msg}`;
+        list.appendChild(bubble);
+    }
+}
+
+
+
+
+
+// Open/Close Hub
+function openCommunity() { document.getElementById('communityHub').style.display = 'flex'; }
+function closeCommunity() { document.getElementById('communityHub').style.display = 'none'; }
+
+// Tab Switching
+function switchHubTab(tabId) {
+    document.querySelectorAll('.hub-pane').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.hub-nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('hub-' + tabId).classList.add('active');
+    event.currentTarget.classList.add('active');
+}
+
+// WhatsApp Status Logic (24hr limit)
+function uploadStatus() {
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*, video/*';
+    fileInput.onchange = e => {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = function() {
+            const statusObj = {
+                src: reader.result,
+                type: file.type,
+                timestamp: Date.now()
+            };
+            // Save locally for demo
+            let statuses = JSON.parse(localStorage.getItem('hct_statuses') || '[]');
+            statuses.push(statusObj);
+            localStorage.setItem('hct_statuses', JSON.stringify(statuses));
+            renderStatuses();
+        };
+        reader.readAsDataURL(file);
+    };
+    fileInput.click();
+}
+
+function renderStatuses() {
+    const list = document.getElementById('statusList');
+    list.innerHTML = "";
+    let statuses = JSON.parse(localStorage.getItem('hct_statuses') || '[]');
+    const now = Date.now();
+
+    statuses.filter(s => (now - s.timestamp) < 86400000).forEach(s => {
+        const div = document.createElement('div');
+        div.className = "status-circle";
+        div.style.border = "2px solid #22c55e";
+        div.innerHTML = s.type.includes('video') ? '🎥' : `<img src="${s.src}" style="width:100%; height:100%; border-radius:50%">`;
+        list.appendChild(div);
+    });
+}
+
+// AI Gemini Chat Simulation
+function askGemini() {
+    const input = document.getElementById('aiInput');
+    const box = document.getElementById('ai-chat-box');
+    if(!input.value) return;
+
+    box.innerHTML += `<p style="color:#f39c12; text-align:right;">You: ${input.value}</p>`;
+    setTimeout(() => {
+        box.innerHTML += `<p class="ai-msg">Gemini: Processing your request... As an HCSTI student, you should focus on the ${input.value} security implications.</p>`;
+        box.scrollTop = box.scrollHeight;
+    }, 1000);
+    input.value = "";
+}
+
+
+
+
+let currentReplyData = null;
+
+function openPrivateChat(name) {
+    document.getElementById('activeChatName').innerText = name;
+    document.getElementById('privateChatWindow').style.display = 'flex';
+}
+
+function closePrivateChat() { document.getElementById('privateChatWindow').style.display = 'none'; }
+
+function sendMsg() {
+    const input = document.getElementById('msgInput');
+    if (!input.value) return;
+
+    const msgHtml = `
+        <div class="msg-row msg-sent" ontouchstart="handleSlideStart(event, this)" ontouchend="handleSlideEnd(event, this, '${input.value}')">
+            ${currentReplyData ? `<div style="background:rgba(0,0,0,0.2); padding:5px; border-radius:5px; margin-bottom:5px; font-size:0.7rem; border-left:2px solid #f39c12;">${currentReplyData}</div>` : ''}
+            ${input.value}
+        </div>`;
+    
+    document.getElementById('chatMessages').insertAdjacentHTML('beforeend', msgHtml);
+    input.value = "";
+    cancelReply(); // Reset reply
+    const box = document.getElementById('chatMessages');
+    box.scrollTop = box.scrollHeight;
+}
+
+// SLIDE TO REPLY LOGIC
+let startX = 0;
+function handleSlideStart(e, el) { startX = e.touches[0].clientX; }
+
+function handleSlideEnd(e, el, text) {
+    let diff = e.changedTouches[0].clientX - startX;
+    if (diff > 60) { // If slid 60px to the right
+        el.classList.add('sliding');
+        setTimeout(() => el.classList.remove('sliding'), 300);
+        setupReply(text);
+    }
+}
+
+function setupReply(text) {
+    currentReplyData = text;
+    document.getElementById('replyToMsg').innerText = text;
+    document.getElementById('replyToUser').innerText = "Replying to message...";
+    document.getElementById('replyPreview').style.display = 'flex';
+}
+
+function cancelReply() {
+    currentReplyData = null;
+    document.getElementById('replyPreview').style.display = 'none';
+}
+
+
+
+
+
+
+
+function toggleLabSnippet() {
+    const pop = document.getElementById('labSnippetPopup');
+    pop.style.display = pop.style.display === 'none' ? 'block' : 'none';
+}
+
+function sendLabSnippet() {
+    const code = document.getElementById('labCodeInput').value;
+    const lang = document.getElementById('labLanguage').value;
+    
+    if(!code) return alert("Please paste your code first!");
+
+    const msgHtml = `
+        <div class="msg-row msg-sent code-bubble">
+            <div style="color:#58a6ff; font-size:0.7rem; margin-bottom:5px;">[Terminal: ${lang}]</div>
+            <code>${code}</code>
+        </div>`;
+    
+    document.getElementById('chatMessages').insertAdjacentHTML('beforeend', msgHtml);
+    
+    // Clear and Close
+    document.getElementById('labCodeInput').value = "";
+    toggleLabSnippet();
+    
+    const box = document.getElementById('chatMessages');
+    box.scrollTop = box.scrollHeight;
+}
+
+
+
+// --- FULL STATUS VIEW LOGIC ---
+function viewFullStatus(src, type) {
+    const viewer = document.getElementById('statusViewer');
+    const img = document.getElementById('fullStatusImage');
+    const vid = document.getElementById('fullStatusVideo');
+    const progress = document.getElementById('statusProgress');
+
+    viewer.style.display = 'flex';
+    progress.style.width = '0%';
+    
+    if(type.includes('video')) {
+        img.style.display = 'none';
+        vid.style.display = 'block';
+        vid.src = src;
+        vid.play();
+    } else {
+        vid.style.display = 'none';
+        img.style.display = 'block';
+        img.src = src;
+    }
+
+    // Auto-close after 5 seconds (simulating WhatsApp)
+    setTimeout(() => { progress.style.width = '100%'; }, 50);
+    setTimeout(() => { viewer.style.display = 'none'; vid.pause(); }, 5050);
+}
+
+// --- ACTIVITY TRACKING LOGIC ---
+function trackActivity(platform) {
+    let history = JSON.parse(localStorage.getItem('hct_activity') || '[]');
+    const newEntry = {
+        app: platform,
+        time: new Date().toLocaleTimeString(),
+        date: new Date().toLocaleDateString()
+    };
+    history.unshift(newEntry); // Add to top
+    localStorage.setItem('hct_activity', JSON.stringify(history.slice(0, 20))); // Keep last 20
+    renderActivity();
+}
+
+function renderActivity() {
+    const log = document.getElementById('activityLog');
+    let history = JSON.parse(localStorage.getItem('hct_activity') || '[]');
+    log.innerHTML = history.map(item => `
+        <div class="activity-item">
+            <strong>Accessed ${item.app}</strong>
+            ${item.date} at ${item.time}
+        </div>
+    `).join('');
+}
+
+// Call renderActivity when the community hub opens
+function openCommunity() { 
+    document.getElementById('communityHub').style.display = 'flex'; 
+    renderActivity(); 
+    renderStatuses(); // Ensure statuses load too
+}
+
+
+
+
+
+dragElement(document.getElementById("privateChatWindow"));
+
+function dragElement(elmnt) {
+  var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+  // Look for the header to move the whole box
+  const header = elmnt.querySelector(".chat-header");
+  
+  if (header) {
+    header.onmousedown = dragMouseDown;
+  } else {
+    elmnt.onmousedown = dragMouseDown;
+  }
+
+  function dragMouseDown(e) {
+    e = e || window.event;
+    // Don't drag if clicking buttons
+    if (e.target.tagName === 'BUTTON') return; 
+    
+    e.preventDefault();
+    pos3 = e.clientX;
+    pos4 = e.clientY;
+    document.onmouseup = closeDragElement;
+    document.onmousemove = elementDrag;
+  }
+
+  function elementDrag(e) {
+    e = e || window.event;
+    e.preventDefault();
+    pos1 = pos3 - e.clientX;
+    pos2 = pos4 - e.clientY;
+    pos3 = e.clientX;
+    pos4 = e.clientY;
+    elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+    elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+  }
+
+  function closeDragElement() {
+    document.onmouseup = null;
+    document.onmousemove = null;
+  }
+}
+
+
+
+
+
+// Call this when the student clicks "Assignments"
+
+// Unified Tab Switcher for the Community Hub
+function switchHubTab(tabId) {
+    // 1. Hide ALL panes and remove active class
+    const allPanes = document.querySelectorAll('.hub-pane');
+    allPanes.forEach(p => {
+        p.classList.remove('active');
+        p.style.display = 'none'; // Force hide
+    });
+
+    // 2. Remove active highlight from all sidebar icons
+    document.querySelectorAll('.hub-nav-item').forEach(n => n.classList.remove('active'));
+
+    // 3. Show the target pane
+    const targetPane = document.getElementById('hub-' + tabId);
+    if (targetPane) {
+        targetPane.classList.add('active');
+        targetPane.style.display = 'block'; // Force show
+    }
+
+    // 4. Highlight the correct sidebar icon
+    // This assumes your sidebar icons have onclick="switchHubTab('chats')", etc.
+    const activeIcon = event?.currentTarget;
+    if (activeIcon && activeIcon.classList.contains('hub-nav-item')) {
+        activeIcon.classList.add('active');
+    }
+
+    // 5. Run specific logic based on the tab
+    if (tabId === 'assignments') loadLeaderboard();
+    if (tabId === 'status') renderStatuses();
+    if (tabId === 'discovery') renderActivity(); 
+}
+
+// Update your openAssignments to simply call the switcher
+function openAssignments() {
+    document.getElementById('communityHub').style.display = 'flex';
+    switchHubTab('assignments');
+}
+
+
+
+
+
+
+// 1. THIS ACTIVATES THE IMAGE HANDLER AND TURNS THE EDITOR LIGHT
+tinymce.init({
+    selector: '#adminBody',
+    skin: "oxide",       // Changed from oxide-dark to light
+    content_css: "default", // Changed from dark to default to allow images to be seen
+    height: 400,
+    plugins: 'image link lists media table powerpaste',
+    toolbar: 'undo redo | blocks | bold italic | alignleft aligncenter alignright alignjustify | bullist numlist | table | image media',
+    image_title: true,
+    automatic_uploads: true,
+    paste_data_images: true, 
+    /* This makes pasted images save directly inside the document as raw text */
+    images_upload_handler: function (blobInfo, success, failure) {
+        success('data:' + blobInfo.blob().type + ';base64,' + blobInfo.base64());
+    },
+    setup: function (editor) {
+        editor.on('change', function () {
+            editor.save(); 
+        });
+    }
+});
+
+// 2. THIS INJECTS THE MISSING SUBMIT BUTTON RIGHT BELOW THE EDITOR
+document.addEventListener("DOMContentLoaded", function() {
+    const adminBodyTextarea = document.getElementById('adminBody');
+    if (adminBodyTextarea) {
+        const submitBtn = document.createElement('button');
+        submitBtn.innerText = "🚀 Upload Lesson to Portals";
+        submitBtn.className = "modern-btn"; // Hooks onto your button class in style.css
+        submitBtn.style.marginTop = "20px";
+        submitBtn.style.display = "block";
+        submitBtn.style.marginLeft = "auto";
+        submitBtn.style.marginRight = "auto";
+        
+        // This fires your existing send function
+        submitBtn.onclick = function() {
+            saveTaskToGoogle();
+        };
+        
+        // Puts the button right after the text editor
+        adminBodyTextarea.parentNode.appendChild(submitBtn);
+    }
+});
+
+
+
+
+
+let editorInstance;
+
+// Initialize the Word Editor when the Admin Panel is opened
+function initWordProcessor() {
+    DecoupledEditor
+        .create(document.querySelector('#wordEditor'))
+        .then(editor => {
+            const toolbarContainer = document.querySelector('#toolbar-container');
+            toolbarContainer.appendChild(editor.ui.view.toolbar.element);
+            
+            // Save the editor instance globally so our upload button can find it
+            window.myEditor = editor; 
+
+            // --- UPGRADED LIVE SYNC LOGIC ---
+            editor.model.document.on('change:data', () => {
+                const data = editor.getData();
+                const previewContainer = document.getElementById('livePreview');
+                
+                // 1. Pick a fixed teacher avatar for the preview (Felix)
+                const previewTeacher = "https://api.dicebear.com/7.x/bottts/svg?seed=Felix";
+
+                // 2. Wrap your data in the Premium Duolingo HTML structure
+                if (data && data.trim() !== "" && !data.includes("Start typing")) {
+                    previewContainer.innerHTML = `
+                        <div class="duo-premium-card" style="display: flex; align-items: flex-start; gap: 15px; margin-top: 10px;">
+                            <img src="${previewTeacher}" style="width: 50px; height: 50px; border-radius: 50%; border: 2px solid #22c55e;" alt="Teacher">
+                            <div class="duo-bubble" style="background: white; color: #1e293b; padding: 15px; border-radius: 18px; border-bottom-left-radius: 2px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); font-size: 0.9rem; max-width: 80%;">
+                                ${data}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    previewContainer.innerHTML = "<p style='text-align:center; color:gray; font-size:0.8rem;'>📱 Waiting for you to type your lesson...</p>";
+                }
+
+                // 3. Keep your auto-save running in the background
+                autoSave(data); 
+            });
+        })
+        .catch(error => {
+            console.error(error);
+        });
+}
+    document.getElementById('lessonFile').addEventListener('change', function() {
+    const previewContainer = document.getElementById('livePreview');
+    if (this.files && this.files[0]) {
+        const fileName = this.files[0].name;
+        previewContainer.innerHTML = `
+            <div class="duo-premium-card" style="display: flex; align-items: flex-start; gap: 15px; margin-top: 10px; opacity: 0.8;">
+                <img src="https://api.dicebear.com/7.x/bottts/svg?seed=Felix" style="width: 50px; height: 50px; border-radius: 50%; border: 2px solid #22c55e;" alt="Teacher">
+                <div class="duo-bubble" style="background: #f0fdf4; color: #1e293b; padding: 15px; border-radius: 18px; border-bottom-left-radius: 2px; border: 1px dashed #22c55e;">
+                    <p><strong>Lesson Attached:</strong> ${fileName}</p>
+                    <p style="font-size: 0.7rem;">Click "Upload" to finalize this document lesson.</p>
+                </div>
+            </div>
+        `;
+    }
+});
+
+    
+
+
+
+
+
+
+</Script>
+
+<div id="adminContainer" style="background:#1e293b; padding:20px; border-top:2px solid #22c55e; margin-top:50px;">
+    
+    <div id="adminAuth">
+        <h3 style="color:#22c55e; margin-bottom:10px;">HCSTI Admin Access</h3>
+        <input type="password" id="adminPass" placeholder="Enter Admin Password" style="max-width:300px;">
+        <button onclick="checkAdminPass()" style="background:#22c55e; color:white; padding:10px 20px; border:none; border-radius:5px; cursor:pointer; margin-top:10px;">Unlock Dashboard</button>
+    </div>
+
+
+
+<div id="adminPanel" style="display:none; padding: 20px;">
+    <h3>🛠️ Task Manager (Director Mode)</h3>
+    
+    <select id="adminCourseSelect" class="admin-input">
+        <option value="Cyber Security & PenTesting">Cyber Security</option>
+        <option value="Web Dev (HTML/CSS)">Web Dev</option>
+        <option value="Graphics Design">Graphics Design</option>
+    </select>
+    <input type="number" id="adminTaskNum" placeholder="Task Number" class="admin-input">
+    <input type="text" id="adminTitle" placeholder="Task Title" class="admin-input">
+
+    <div style="display: flex; gap: 10px; margin-bottom: 20px; justify-content: center;">
+        <button onclick="switchMode('type')" style="background:#334155; color:white; padding:8px 15px; border-radius:5px; border:none; cursor:pointer;">⌨️ Type Note</button>
+        <button onclick="switchMode('upload')" style="background:#334155; color:white; padding:8px 15px; border-radius:5px; border:none; cursor:pointer;">📎 Upload File</button>
+    </div>
+
+    <div id="typeModeSection">
+        <div id="toolbar-container" style="border: 1px solid #ccc; background: #fafafa;"></div>
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+            <div style="flex: 2; border: 1px solid #ccc; background: white; min-height: 500px; padding: 40px; color: #333;" id="wordEditor">
+                <h2>Humble CyberS Tech</h2>
+                <p>Start typing your lesson notes here...</p>
+            </div>
+            <div style="flex: 1; background: #121212; border-radius: 20px; padding: 15px; border: 8px solid #333; height: 600px; overflow-y: auto;">
+                <div style="color: gray; font-size: 0.7rem; text-align: center; margin-bottom: 10px;">📱 STUDENT LIVE PREVIEW</div>
+                <div id="livePreview" class="lesson-content" style="color: white;"></div>
+            </div>
+        </div>
+        <button type="button" class="modern-btn" onclick="submitTypedNote()" style="width:100%; margin-top:20px; background:#22c55e;">🚀 Post Typed Lesson</button>
+    </div>
+
+    <div id="uploadModeSection" style="display:none; background:#1e293b; padding:40px; border-radius:15px; text-align:center; border: 2px dashed #22c55e;">
+        <h4 style="color:#22c55e;">Upload Premium Document</h4>
+        <p style="color:#94a3b8;">Choose a Word, PDF, or high-res Image to convert into a Duo-style lesson.</p>
+        <input type="file" id="lessonFile" accept=".pdf,.doc,.docx,image/*" style="margin:20px 0; color:white;">
+        <br>
+        <button type="button" class="modern-btn" onclick="submitFileNote()" style="background:#22c55e; padding:15px 40px;">🚀 Convert & Upload File</button>
+    </div>
+
+    <div id="saveStatus" style="margin-top: 10px; font-weight: bold; color: #f39c12;">☁️ Waiting for input...</div>
+</div> 
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    if (typeof DecoupledEditor !== 'undefined') {
+        DecoupledEditor
+            .create(document.querySelector('#wordEditor'), {
+                // Keep your Magic Image Plugin
+                extraPlugins: [ function( editor ) {
+                    editor.plugins.get( 'FileRepository' ).createUploadAdapter = ( loader ) => {
+                        return {
+                            upload() {
+                                return loader.file.then( file => new Promise( ( resolve, reject ) => {
+                                    const reader = new FileReader();
+                                    reader.onload = () => resolve( { default: reader.result } );
+                                    reader.onerror = error => reject( error );
+                                    reader.readAsDataURL( file );
+                                } ) );
+                            },
+                            abort() { }
+                        };
+                    };
+                } ]
+            })
+            .then(editor => {
+                const toolbarContainer = document.querySelector('#toolbar-container');
+                toolbarContainer.appendChild(editor.ui.view.toolbar.element);
+                
+                window.myEditor = editor; 
+
+                // --- PREMIUM DUOLINGO LIVE PREVIEW LOGIC ---
+                editor.model.document.on('change:data', () => {
+                    const data = editor.getData();
+                    const previewContainer = document.getElementById('livePreview');
+                    
+                    // Fixed robot for preview
+                    const previewTeacher = "https://api.dicebear.com/7.x/bottts/svg?seed=Felix";
+
+                    if (data && data.trim() !== "" && !data.includes("Start typing")) {
+                        previewContainer.innerHTML = `
+                            <div class="duo-premium-card">
+                                <img src="${previewTeacher}" class="duo-character-img" alt="Teacher">
+                                <div class="duo-bubble">
+                                    ${data}
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        previewContainer.innerHTML = "<p style='text-align:center; color:gray; padding-top:20px;'>📱 Type a note or switch to 'Upload File' mode...</p>";
+                    }
+                });
+            })
+            .catch(error => {
+                console.error(error);
+            });
+    }
+});
+
+// This is the function that triggers when you click the button!
+// --- THIS FUNCTION NOW AUTOMATICALLY "WRAPS" YOUR TEXT IN GAMING LAYOUTS ---
+async function submitLessonNote() {
+    const fileInput = document.getElementById('lessonFile'); 
+    const btn = document.getElementById('uploadBtn');
+    const saveStatus = document.getElementById('saveStatus');
+    const scriptURL = "https://script.google.com/macros/s/AKfycby5CQVpB-T7WsHo6pWTXCl1tsis-DCVd-gGA7B08UbcXxLvKGawL8FJdydvyKixN3ELkg/exec";
+
+    // 1. GENERATE THE AVATAR FIRST (To keep the Duolingo style consistent)
+    const teacherAvatars = [
+        "https://api.dicebear.com/7.x/bottts/svg?seed=Felix",
+        "https://api.dicebear.com/7.x/bottts/svg?seed=Aria",
+        "https://api.dicebear.com/7.x/bottts/svg?seed=Leo",
+        "https://api.dicebear.com/7.x/bottts/svg?seed=Milo",
+        "https://api.dicebear.com/7.x/bottts/svg?seed=Zoe"
+    ];
+    const selectedTeacher = teacherAvatars[Math.floor(Math.random() * teacherAvatars.length)];
+
+    // 2. CHUNKING BYPASS (For Word Docs/PDFs with high-res images)
+    if (fileInput && fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        saveStatus.innerText = "⚡ PREPARING PREMIUM DOCUMENT...";
+        btn.disabled = true;
+
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            const base64Data = e.target.result.split(',')[1];
+            const chunkSize = 500000; 
+            const totalChunks = Math.ceil(base64Data.length / chunkSize);
+            const fileId = "doc_" + Math.random().toString(36).substr(2, 9);
+
+            // We create a "Duo-style" button for the student to click
+            const fileDuoStructure = `
+                <div class="duo-premium-card">
+                    <img src="${selectedTeacher}" class="duo-character-img" alt="Teacher">
+                    <div class="duo-bubble">
+                        <p>I've prepared a detailed document for you! Click below to view the full lesson:</p>
+                        <a href="TEMP_URL" target="_blank" style="display:inline-block; background:#22c55e; color:white; padding:10px 20px; border-radius:12px; text-decoration:none; font-weight:bold; margin-top:10px;">
+                           📖 Open ${file.name}
+                        </a>
+                    </div>
+                </div>
+            `;
+
+            for (let i = 0; i < totalChunks; i++) {
+                const chunk = base64Data.slice(i * chunkSize, (i + 1) * chunkSize);
+                saveStatus.innerText = `☁️ UPLOADING (${Math.round((i / totalChunks) * 100)}%)...`;
+
+                const payload = {
+                    action: "upload_chunk",
+                    course: document.getElementById('adminCourseSelect').value,
+                    task: document.getElementById('adminTaskNum').value,
+                    title: document.getElementById('adminTitle').value,
+                    fileId: fileId,
+                    chunk: chunk,
+                    chunkIndex: i,
+                    totalChunks: totalChunks,
+                    fileName: file.name,
+                    mimeType: file.type,
+                    duoStructure: fileDuoStructure // We send the style to Google
+                };
+
+                await fetch(scriptURL, { method: "POST", body: JSON.stringify(payload) });
+                
+                if (i === totalChunks - 1) {
+                    alert("Success! Your Premium Document Lesson is live.");
+                    location.reload();
+                }
+            }
+        };
+        reader.readAsDataURL(file);
+    } 
+    // 3. TEXT FALLBACK (For typed notes)
+    else {
+        let rawEditorData = window.myEditor.getData();
+        if(!rawEditorData || rawEditorData.trim() === "" || rawEditorData.includes("Start typing")) {
+            alert("Please enter notes or attach a file!");
+            return;
+        }
+
+        const premiumDuoData = `
+            <div class="duo-premium-card">
+                <img src="${selectedTeacher}" class="duo-character-img" alt="Teacher">
+                <div class="duo-bubble">${rawEditorData}</div>
+            </div>
+        `;
+
+        saveStatus.innerText = "☁️ Saving text lesson...";
+        
+        fetch(scriptURL, { 
+            method: 'POST', 
+            mode: 'no-cors', 
+            body: JSON.stringify({
+                action: "save_lesson",
+                course: document.getElementById('adminCourseSelect').value,
+                task: document.getElementById('adminTaskNum').value,
+                title: document.getElementById('adminTitle').value,
+                body: premiumDuoData
+            }) 
+        }).then(() => {
+            alert("Text Lesson Uploaded Successfully!");
+            location.reload();
+        });
+    }
+}
+</script>
+        
+</div>
+            
+            
+            
+        </div>
+    </div>
+</div>
+
+
+<div id="levelUpModal" class="level-up-overlay">
+    <div class="level-up-card">
+        <div class="glow-circle">⚡</div>
+        <h2>LEVEL UP!</h2>
+        <p>Weekly Test Completed Successfully</p>
+        <div class="xp-bar-container">
+            <div id="xpIncrease" class="xp-bar-fill"></div>
+        </div>
+        <button onclick="closeLevelUp()" class="continue-btn">Keep Learning</button>
+    </div>
+</div>
+
+<div id="levelUpModal" class="level-up-overlay">
+    <div class="level-up-card">
+        <div class="glow-circle">⚡</div>
+        <h2>LEVEL UP!</h2>
+        <p>Weekly Test Completed Successfully</p>
+        <div class="xp-bar-container">
+            <div id="xpIncrease" class="xp-bar-fill"></div>
+        </div>
+        <button onclick="closeLevelUp()" class="continue-btn">Keep Learning</button>
+    </div>
+</div>
+
+
+
+
+
+<div id="accessGate" class="access-overlay" style="display:none;">
+    <div class="access-card">
+        <div style="font-size: 2.5rem; margin-bottom: 10px;">🛡️</div>
+        <h2 style="color: #f39c12;">Access Locked</h2>
+        <p style="color: #ccc; margin-bottom: 15px;">You have completed 4 lessons and 4 exercises. Please renew to continue!</p>
+        
+        <div class="payment-info" style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; text-align: left; margin-bottom: 15px; border: 1px solid #333;">
+            <strong style="color: #22c55e;">💳 Bank Transfer Details:</strong><br>
+            <span style="font-size: 0.9rem; color: #aaa;">Bank Name:</span> <strong>Opay</strong><br>
+            <span style="font-size: 0.9rem; color: #aaa;">Account Number:</span> <strong>7077557219</strong><br>
+            <span style="font-size: 0.9rem; color: #aaa;">Account Name:</span> <strong>Humble Emmanuel</strong><br>
+            <hr style="border-color: #333; margin: 10px 0;">
+            <span style="font-size: 0.9rem; color: #aaa;">Amount:</span> <strong>₦15,000 (Monthly)</strong> 
+        <a id="whatsappBtn" href="https://wa.me/message/5636MVP3GLY7A1?text=Hello%20Director%20Emmanuel,%20I%20just%20made%20my%20payment%20for%20the%20portal.%20Please%20verify%20my%20receipt%20and%20unlock%20my%20access." 
+           target="_blank" 
+           style="display: block; background: #22c55e; color: white; padding: 12px; border-radius: 6px; text-decoration: none; font-weight: bold; margin-bottom: 20px; text-align: center;">
+           💬 Chat on WhatsApp for Verification
+        </a>
+
+        <div id="nameRequestArea">
+            <p style="font-size: 0.85rem; color: #aaa; margin-bottom: 10px;">Enter the exact name you used during registration:</p>
+            <input type="text" id="regStudentName" placeholder="Full Name" class="access-input" style="width: 100%; padding: 10px; background: #111; border: 1px solid #444; color: white; border-radius: 5px; box-sizing: border-box; margin-bottom: 10px;">
+            <button onclick="requestRenewalCode()" style="width: 100%; background: #f39c12; color: black; font-weight: bold; padding: 10px; border: none; border-radius: 5px; cursor: pointer;">Generate Renewal Code</button>
+        </div>
+
+        <div id="codeEntryArea" style="display:none; border-top: 1px solid #333; padding-top: 15px; margin-top: 15px;">
+            <p style="font-size: 0.85rem; color: #aaa; margin-bottom: 10px;">Paste the code below to unlock the dashboard:</p>
+            <input type="text" id="studentAccessCode" placeholder="Enter Renewal Code" class="access-input" style="width: 100%; padding: 10px; background: #111; border: 1px solid #444; color: white; border-radius: 5px; box-sizing: border-box; margin-bottom: 10px;">
+            <button onclick="validateAccess()" class="unlock-btn" style="width: 100%; background: #22c55e; color: white; font-weight: bold; padding: 10px; border: none; border-radius: 5px; cursor: pointer;">Unlock Portal</button>
+        </div>
+    </div>
+</div> 
+
+
+
+
+
+
+</body>
+</html>
