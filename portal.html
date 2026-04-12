@@ -1901,7 +1901,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 toolbarContainer.appendChild(editor.ui.view.toolbar.element);
                 window.myEditor = editor; 
 
-                // --- LIVE PREVIEW BY SECTION ---
+                // --- LIVE PREVIEW BY HEADING SECTION ---
                 editor.model.document.on('change:data', () => {
                     const data = editor.getData();
                     const previewContainer = document.getElementById('livePreview');
@@ -1932,19 +1932,27 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 });
 
-// Helper function to group content by Headings
+// Helper function: Strictly groups by Heading tags
 function groupIntoSections(container) {
     let sections = [];
     let currentSection = "";
+    
     Array.from(container.children).forEach(child => {
+        // When we hit a Heading (H2 or H3), we start a new section
         if (child.tagName === 'H2' || child.tagName === 'H3') {
-            if (currentSection !== "") sections.push(currentSection);
+            if (currentSection !== "") {
+                sections.push(currentSection);
+            }
             currentSection = child.outerHTML;
         } else {
+            // Append paragraphs, lists, etc., to the current heading section
             currentSection += child.outerHTML;
         }
     });
-    if (currentSection !== "") sections.push(currentSection);
+    
+    if (currentSection !== "") {
+        sections.push(currentSection);
+    }
     return sections;
 }
 
@@ -1978,6 +1986,7 @@ async function submitLessonNote() {
                     <div style="background:white; border:2px solid #e2e8f0; padding:25px; border-radius:25px; flex:1; box-shadow: 0 6px 0 #f1f5f9;">
                         <div style="font-size:1.1rem; color:#1e293b;">${sectionContent}</div>
                         <div style="margin-top:20px; border-top:2px dashed #e2e8f0; padding-top:15px;">
+                            <p style="font-weight:bold; color:#22c55e; margin-bottom:10px;">End of this section. Any questions?</p>
                             <div style="display:flex; gap:12px; margin-top:10px;">
                                 <button onclick="askAITeacher('${index}')" style="background:#22c55e; color:white; border:none; padding:12px 25px; border-radius:15px; font-weight:bold; cursor:pointer; box-shadow: 0 4px 0 #15803d;">💡 ASK AI</button>
                                 <button onclick="unlockNext(${index}, ${sections.length})" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; padding:12px 25px; border-radius:15px; font-weight:bold; cursor:pointer;">CONTINUE ➔</button>
@@ -2031,7 +2040,6 @@ async function submitLessonNote() {
         }
     <\/script>`;
 
-    // --- FETCH CALL TO UPLOAD ---
     try {
         const response = await fetch(scriptURL, { 
             method: 'POST', 
@@ -2042,14 +2050,14 @@ async function submitLessonNote() {
                 task: taskNum,
                 title: title,
                 body: finalGameHtml,
-                generateQuiz: true // Tells your backend to make the 20 questions
+                generateQuiz: true 
             }) 
         });
         alert("Lesson & Exercise successfully uploaded!");
         location.reload();
     } catch (error) {
         console.error("Upload failed:", error);
-        alert("Error connecting to server. Check your script URL.");
+        alert("Error connecting to server.");
     }
 }
 </script>
