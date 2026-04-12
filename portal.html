@@ -1876,27 +1876,33 @@ const PASS_MARK = 80;
 const EXERCISE_TIME_LIMIT = 18 * 60; 
 const scriptURL = "https://script.google.com/macros/s/AKfycby5CQVpB-T7WsHo6pWTXCl1tsis-DCVd-gGA7B08UbcXxLvKGawL8FJdydvyKixN3ELkg/exec";
 
-// --- AVATAR SELECTION (Human style from your images) ---
-const avatarSeeds = ["Aneka", "Felix", "Adil", "Kaleb", "Noa", "Vivien"];
+// --- DYNAMIC HUMAN AVATARS (Matching Images 2-7) ---
+const avatarSeeds = ["Felix", "Aria", "Aneka", "HumbleProf", "CyberExpert", "Adil", "Noa"];
 const getTeacherAvatar = (index) => `https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeeds[index % avatarSeeds.length]}&backgroundColor=b6e3f4,c0aede,ffdfbf`;
 
 document.addEventListener("DOMContentLoaded", function() {
-    // Initialize Editor
     if (typeof DecoupledEditor !== 'undefined') {
         DecoupledEditor.create(document.querySelector('#wordEditor')).then(editor => {
             const toolbarContainer = document.querySelector('#toolbar-container');
             if(toolbarContainer) toolbarContainer.appendChild(editor.ui.view.toolbar.element);
             window.myEditor = editor; 
 
-            // Live Preview Update
+            // LIVE PREVIEW: Updates as you type
             editor.model.document.on('change:data', () => {
-                updateLivePreview();
+                const data = editor.getData();
+                const previewContainer = document.getElementById('livePreview');
+                if (previewContainer && data.trim() !== "") {
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = data;
+                    const sections = groupIntoGameSections(tempDiv);
+                    previewContainer.innerHTML = renderGameUI(sections, true); 
+                }
             });
         });
     }
 });
 
-// --- CORE GAME LOGIC: HEADINGS OR 4 PARAGRAPHS ---
+// --- GAME LOGIC: SPLITTING BY HEADINGS OR 4 PARAGRAPHS ---
 function groupIntoGameSections(container) {
     let sections = [];
     let currentBatch = "";
@@ -1925,34 +1931,23 @@ function groupIntoGameSections(container) {
     return sections;
 }
 
-// --- PREVIEW RENDERING ---
-function updateLivePreview() {
-    const data = window.myEditor.getData();
-    const previewContainer = document.getElementById('livePreview');
-    if (previewContainer && data.trim() !== "") {
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = data;
-        const sections = groupIntoGameSections(tempDiv);
-        previewContainer.innerHTML = renderGameUI(sections, true); 
-    }
-}
-
+// --- RENDERING: THE STUDENT INTERFACE ---
 function renderGameUI(sections, isPreview = false) {
-    let html = `<div style="display:flex; flex-direction:column; gap:25px; background:#f1f5f9; padding:15px; border-radius:15px;">`;
+    let html = `<div style="display:flex; flex-direction:column; gap:30px; padding:10px;">`;
     sections.forEach((content, index) => {
         const avatar = getTeacherAvatar(index);
         html += `
-            <div id="step_${index}" style="display:${index === 0 || isPreview ? 'flex' : 'none'}; gap:12px; margin-bottom:10px;">
-                <img src="${avatar}" style="width:60px; height:60px; border-radius:50%; border:3px solid #22c55e; background:white;">
-                <div style="background:white; padding:20px; border-radius:18px; flex:1; border:2px solid #e2e8f0; box-shadow:0 4px 0 #cbd5e1;">
+            <div id="step_${index}" style="display:${index === 0 || isPreview ? 'flex' : 'none'}; gap:15px; align-items:flex-start;">
+                <img src="${avatar}" style="width:75px; height:75px; border-radius:50%; border:3px solid #22c55e; background:white;">
+                <div style="background:white; padding:22px; border-radius:20px; flex:1; box-shadow:0 5px 0 #cbd5e1; border:2px solid #e2e8f0;">
                     <div style="color:#1e293b; font-size:1rem;">${content}</div>
-                    <div style="margin-top:15px; border-top:1px dashed #cbd5e1; padding-top:12px;">
-                        <p style="font-size:0.85rem; font-weight:bold; color:#22c55e; margin-bottom:10px;">Teacher: Any questions on this part?</p>
-                        <div style="display:flex; gap:10px;">
-                            <button onclick="askAITeacher(${index})" style="background:#3b82f6; color:white; border:none; padding:10px 15px; border-radius:10px; cursor:pointer; font-weight:bold;">💡 ASK QUESTION</button>
-                            <button onclick="unlockNextStep(${index}, ${sections.length})" style="background:#22c55e; color:white; border:none; padding:10px 15px; border-radius:10px; cursor:pointer; font-weight:bold;">CONTINUE ➔</button>
+                    <div style="margin-top:15px; border-top:2px dashed #e2e8f0; padding-top:12px;">
+                        <p style="font-weight:bold; color:#22c55e; font-size:0.9rem;">"Any questions before we continue?"</p>
+                        <div style="display:flex; gap:10px; margin-top:10px;">
+                            <button onclick="askAITeacher(${index})" style="background:#3b82f6; color:white; border:none; padding:10px 18px; border-radius:12px; cursor:pointer; font-weight:bold;">💡 ASK AI</button>
+                            <button onclick="unlockNextStep(${index}, ${sections.length})" style="background:#22c55e; color:white; border:none; padding:10px 18px; border-radius:12px; cursor:pointer; font-weight:bold;">CONTINUE ➔</button>
                         </div>
-                        <div id="ai_box_${index}" style="display:none; margin-top:12px; padding:12px; background:#f8fafc; border-radius:10px; border-left:4px solid #3b82f6; color:#334155; font-size:0.9rem;"></div>
+                        <div id="ai_box_${index}" style="margin-top:15px; display:none; background:#f8fafc; padding:15px; border-radius:12px; border-left:5px solid #3b82f6; color:#334155; font-size:0.9rem;"></div>
                     </div>
                 </div>
             </div>`;
@@ -1960,110 +1955,89 @@ function renderGameUI(sections, isPreview = false) {
     return html + `</div>`;
 }
 
-// --- STUDENT ACTIONS & AI RESEARCH ---
-async function askAITeacher(id) {
-    const query = prompt("Ask me anything (Cyber Security, Web Dev, or Graphics)...");
-    if(!query) return;
-    
-    const box = document.getElementById(`ai_box_${id}`);
-    box.style.display = "block";
-    box.innerHTML = "<b>Teacher is researching advanced platforms... 🔍</b>";
-
-    try {
-        const response = await fetch(`${scriptURL}?action=ai_query&query=${encodeURIComponent(query)}`);
-        const data = await response.json();
-        box.innerHTML = `<b>AI Answer:</b> ${data.answer}`;
-    } catch(e) {
-        box.innerHTML = "<b>Teacher:</b> I've noted that! I'll provide a detailed breakdown once we finish this section.";
-    }
-}
-
-function unlockNextStep(i, total) {
-    if(i + 1 < total) {
-        const next = document.getElementById(`step_${i+1}`);
-        next.style.display = "flex";
-        next.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    } else {
-        triggerExerciseTransition();
-    }
-}
-
-// --- FILE UPLOAD (Fixed "Nothing Happening" bug) ---
+// --- THE UPLOAD FIX: This handles the Premium Document Button ---
 async function submitFileNote() {
     const fileInput = document.getElementById('lessonFile');
-    const status = document.getElementById('saveStatus');
+    const saveStatus = document.getElementById('saveStatus');
     
-    if (!fileInput.files[0]) return alert("Please select a file first!");
+    if (!fileInput.files[0]) {
+        alert("Please select a document or image first!");
+        return;
+    }
+
+    saveStatus.innerText = "⏳ READING PREMIUM DOCUMENT...";
     
-    status.innerText = "⏳ Reading Premium Document...";
+    const file = fileInput.files[0];
     const reader = new FileReader();
     
     reader.onload = async function(e) {
-        const content = e.target.result;
-        status.innerText = "🚀 Converting to Game Mode...";
+        // Here we capture the file data. For a real 'conversion', we send it to your GS script.
+        const fileData = e.target.result; 
         
-        // This packages the file content into the payload
         const payload = {
             action: "save_lesson_and_quiz",
             course: document.getElementById('adminCourseSelect').value,
             task: document.getElementById('adminTaskNum').value,
             title: document.getElementById('adminTitle').value,
-            body: content, // The actual content from your file
-            generateQuiz: true
+            fileName: file.name,
+            fileContent: fileData, // Sending the file bytes
+            generateQuiz: true,
+            timer: EXERCISE_TIME_LIMIT
         };
 
         try {
+            saveStatus.innerText = "🚀 UPLOADING & GENERATING 20 QUESTIONS...";
             await fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
-            status.innerText = "✅ Lesson & 20 Questions Live!";
-            alert("Success! Your students can now start the challenge.");
+            alert("Premium Lesson & Exercise Uploaded!");
             location.reload();
         } catch(err) {
-            status.innerText = "❌ Upload Error. Check URL.";
+            saveStatus.innerText = "❌ ERROR IN UPLOAD";
+            alert("Upload failed. Check your internet or Script URL.");
         }
     };
-    reader.readAsText(fileInput.files[0]);
+
+    // Use readAsDataURL so it can handle images or docs as Base64 strings
+    reader.readAsDataURL(file);
 }
 
-// --- MASTER POST TYPED NOTE ---
-async function submitTypedNote() {
-    const status = document.getElementById('saveStatus');
-    if(!window.myEditor) return alert("Editor not ready!");
-
-    const rawData = window.myEditor.getData();
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = rawData;
-    const sections = groupIntoGameSections(tempDiv);
-    const lessonBody = renderGameUI(sections, false);
-
-    status.innerText = "🚀 POSTING TO STUDENT PORTAL...";
-
-    const payload = {
-        action: "save_lesson_and_quiz",
-        course: document.getElementById('adminCourseSelect').value,
-        task: document.getElementById('adminTaskNum').value,
-        title: document.getElementById('adminTitle').value,
-        body: lessonBody,
-        generateQuiz: true
-    };
+// --- STUDENT GAME ACTIONS ---
+async function askAITeacher(id) {
+    const query = prompt("Ask me anything (Cyber, Coding, Design)...");
+    if(!query) return;
+    
+    const box = document.getElementById(`ai_box_${id}`);
+    box.style.display = "block";
+    box.innerHTML = "<b>Searching Advanced Sources (Gemini/Wiki/Google)... 🔍</b>";
 
     try {
-        await fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
-        alert("Lesson Posted! Exercise is being generated...");
-        location.reload();
+        // This connects to your Google Script AI Function
+        const r = await fetch(scriptURL + "?action=ai_query&query=" + encodeURIComponent(query));
+        const d = await r.json();
+        box.innerHTML = `<b>Teacher Answer:</b><br>${d.answer}`;
     } catch(e) {
-        status.innerText = "❌ Upload Failed.";
+        box.innerHTML = `<b>Teacher:</b> I've noted your question about "${query}". Let's discuss it in the live lab!`;
+    }
+}
+
+function unlockNextStep(i, total) {
+    if(i + 1 < total) {
+        document.getElementById(`step_${i + 1}`).style.display = "flex";
+        window.scrollTo({ top: document.getElementById(`step_${i + 1}`).offsetTop - 50, behavior: 'smooth' });
+    } else {
+        triggerExerciseTransition();
     }
 }
 
 function triggerExerciseTransition() {
+    const avatar = getTeacherAvatar(99);
     const modal = document.createElement('div');
     modal.style = "position:fixed; inset:0; background:rgba(15,23,42,0.95); z-index:10000; display:flex; align-items:center; justify-content:center; padding:20px;";
     modal.innerHTML = `
-        <div style="background:white; padding:40px; border-radius:30px; text-align:center; max-width:450px; border:5px solid #22c55e;">
-            <img src="${getTeacherAvatar(7)}" style="width:120px; margin-bottom:20px;">
+        <div style="background:white; padding:40px; border-radius:30px; text-align:center; max-width:450px; border:6px solid #22c55e;">
+            <img src="${avatar}" style="width:130px; margin-bottom:20px;">
             <h2 style="color:#1e293b;">Level Complete!</h2>
-            <p style="color:#475569; margin-bottom:25px; font-size:1.1rem;">You finished the lecture. You have <b>18 minutes</b> to score <b>80%</b> and unlock the next lesson!</p>
-            <button onclick="window.parent.startExerciseTask()" style="background:#22c55e; color:white; padding:15px 40px; border-radius:15px; font-weight:bold; cursor:pointer; border:none; font-size:1.2rem; box-shadow:0 5px 0 #15803d;">START EXERCISE ➔</button>
+            <p style="color:#475569; font-size:1.1rem; margin-bottom:25px;">You've mastered the lecture. Now, take the 20-question challenge. You need <b>80%</b> to pass!</p>
+            <button onclick="window.parent.startQuizNow()" style="background:#22c55e; color:white; padding:18px 40px; border-radius:18px; font-weight:bold; cursor:pointer; border:none; font-size:1.3rem; box-shadow:0 6px 0 #15803d;">🚀 START EXERCISE (18m)</button>
         </div>
     `;
     document.body.appendChild(modal);
