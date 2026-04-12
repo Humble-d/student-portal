@@ -182,23 +182,7 @@
         </div>
     </div>
 
-</main> ```
 
-### 2. Connect the Toggle Logic
-Since you have `id="adminTrigger"` on your school name in the logo area (at the top of your `portal.html`), you need to make sure your Javascript knows to show this panel when you click it. 
-
-Add this to your `<script>` section if it isn't there already:
-
-```javascript
-document.getElementById('adminTrigger').addEventListener('click', function() {
-    const panel = document.getElementById('adminPanel');
-    if (panel.style.display === 'none') {
-        panel.style.display = 'block';
-        panel.scrollIntoView({ behavior: 'smooth' });
-    } else {
-        panel.style.display = 'none';
-    }
-});
 
 
     </main>
