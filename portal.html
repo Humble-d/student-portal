@@ -59,6 +59,15 @@
     📍 Mark Attendance
 </li>
 
+
+
+<div class="ranking-box" style="padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px; margin: 10px;">
+    <h4 style="color: #f39c12; margin-bottom: 5px;">🏆 Institute Rankings</h4>
+    <div id="leaderboardContent" style="font-size: 0.8rem;">
+        Loading rankings...
+    </div>
+</div>
+
         
         
         <div class="user-profile">
@@ -504,7 +513,34 @@
 
 
 <script>
-  
+  // PUT THIS INSIDE THE <script> TAGS IN portal.html
+function submitQuiz() {
+    let score = 0;
+    // Logic to count checked radio buttons with class 'correct-answer'
+    const correctAnswers = document.querySelectorAll('.quiz-option[data-correct="true"]:checked');
+    score = correctAnswers.length;
+
+    if (score < 16) {
+        alert("❌ Access Denied: You scored " + score + "/20. You need at least 16 to unlock the next lesson.");
+        return; 
+    } else {
+        // Trigger the confetti you already have in your portal!
+        confetti({
+            particleCount: 150,
+            spread: 70,
+            origin: { y: 0.6 }
+        });
+
+        alert("✅ Mission Accomplished! Score: " + score + "/20. Next lesson is now available.");
+        
+        // This talks to the Google Sheet backend
+        google.script.run
+            .withSuccessHandler(() => {
+                location.reload(); // Refresh to show the newly unlocked lesson
+            })
+            .processExercise(currentCourse, currentTask, score);
+    }
+}
   
 // --- CONFIGURATION ---
 const MONTH_IN_MS = 30 * 24 * 60 * 60 * 1000; // 30 Days
