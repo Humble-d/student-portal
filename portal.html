@@ -20,7 +20,7 @@
     
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
     
 </head>
 <body>
@@ -217,10 +217,9 @@
     </div>
 
     <div class="leaderboard-section">
-        <h4><span class="stat-icon">🏆</span> Student Leaderboard</h4>
-        <div id="leaderboardList" class="modern-list">
-            </div>
-    </div>
+    <h4><span class="stat-icon">🏆</span> Student Leaderboard</h4>
+    <div id="leaderboardList" class="modern-list">Loading rankings...</div>
+</div>
 </div>
 
       
@@ -558,22 +557,59 @@ function checkSubscription() {
 }
 
 window.onload = function() {
-    // 1. Check for student progress
+    // 1. SECURITY: Check student progress and 8-task limit
     if (localStorage.getItem("hct_student_progress") === null) {
         localStorage.setItem("hct_student_progress", "0");
     }
     
-    // 2. Read the global completed counter (for the 8 task limit)
     let completedCount = parseInt(localStorage.getItem('completedLessonsCount')) || 0;
     
-    // 3. Trigger lockout screen if they hit 8 tasks (4 lessons + 4 exercises)
     if (completedCount >= 8) {
         document.getElementById('accessGate').style.display = 'flex';
         document.getElementById('classroomOverlay').style.display = 'none';
     }
     
+    // 2. RENDER LESSONS: Display the course content
     renderTasks();
+
+    // 3. RANKINGS: Fetch the leaderboard from Google Sheets
+    google.script.run.withSuccessHandler(showRankings).getStudentRankings();
 };
+
+// This function stays outside window.onload
+function showRankings(students) {
+    let html = '<ul style="list-style: none; padding: 0; margin: 0;">';
+    
+    if (!students || students.length === 0) {
+        html = '<p style="color: #888; font-size: 0.8rem; text-align: center; padding: 20px;">No rankings available yet.</p>';
+    } else {
+        students.forEach((s, index) => {
+            // Trophy Colors: Gold, Silver, Bronze, then White
+            let trophyColor = '#ffffff'; 
+            if (index === 0) trophyColor = '#f39c12'; // Gold
+            if (index === 1) trophyColor = '#bdc3c7'; // Silver
+            if (index === 2) trophyColor = '#cd7f32'; // Bronze
+
+            // Ensure we don't show "undefined" if a student has no tasks yet
+            let score = s.tasksDone || 0;
+
+            html += `
+            <li style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <span style="color: ${trophyColor}; font-weight: bold; font-size: 0.9rem;">
+                   <span style="margin-right: 8px;">#${index + 1}</span> ${s.name}
+                </span>
+                <span style="color: #2ecc71; font-family: monospace; font-weight: bold;">${score} pts</span>
+            </li>`;
+        });
+        html += '</ul>';
+    }
+
+    // TARGET THE RIGHT LIST
+    const listElement = document.getElementById("leaderboardList") || document.getElementById("leaderboardContent");
+    if(listElement) {
+        listElement.innerHTML = html;
+    }
+}
 
 // FUNCTION TO REQUEST THE CODE BY NAME
 async function requestRenewalCode() {
@@ -848,6 +884,19 @@ async function uploadLessonFile() {
 
   const reader = new FileReader();
   
+  async function uploadLessonFile() {
+  const fileInput = document.getElementById('lessonFile');
+  const btn = document.getElementById('uploadBtn');
+  
+  if (!fileInput || !fileInput.files.length) {
+    alert("Please select a file first!");
+    return;
+  }
+  
+  const file = fileInput.files[0];
+  const reader = new FileReader();
+
+  // --- THIS IS WHERE YOUR CODE GOES ---
   reader.onload = async function(e) {
     const base64Data = e.target.result.split(',')[1];
     const chunkSize = 500000; // 500KB Chunks
@@ -872,27 +921,23 @@ async function uploadLessonFile() {
       };
 
       try {
-        const response = await fetch("https://script.google.com/macros/s/AKfycby5CQVpB-T7WsHo6pWTXCl1tsis-DCVd-gGA7B08UbcXxLvKGawL8FJdydvyKixN3ELkg/exec", {
+        await fetch("https://script.google.com/macros/s/AKfycby5CQVpB-T7WsHo6pWTXCl1tsis-DCVd-gGA7B08UbcXxLvKGawL8FJdydvyKixN3ELkg/exec", {
           method: "POST",
           body: JSON.stringify(payload)
         });
         
         if (i === totalChunks - 1) {
-          alert("Success! Your heavy file has been uploaded directly.");
+          alert("Success! File uploaded to Google Drive.");
           btn.innerText = "🚀 Upload Lesson to Portals";
           btn.disabled = false;
-          location.reload(); 
         }
       } catch (error) {
-        console.error(error);
-        alert("Upload failed. Try again or check your network.");
-        btn.innerText = "🚀 Upload Lesson to Portals";
+        alert("Upload failed.");
         btn.disabled = false;
         return;
       }
     }
   };
-  
   reader.readAsDataURL(file);
 }
 
@@ -1876,10 +1921,12 @@ function initWordProcessor() {
     <input type="number" id="adminTaskNum" placeholder="Task Number" class="admin-input">
     <input type="text" id="adminTitle" placeholder="Task Title" class="admin-input">
 
-    <div style="display: flex; gap: 10px; margin-bottom: 20px; justify-content: center;">
-        <button onclick="switchMode('type')" style="background:#334155; color:white; padding:8px 15px; border-radius:5px; border:none; cursor:pointer;">⌨️ Type Note</button>
-        <button onclick="switchMode('upload')" style="background:#334155; color:white; padding:8px 15px; border-radius:5px; border:none; cursor:pointer;">📎 Upload File</button>
-    </div>
+    <div class="admin-controls">
+    <button onclick="uploadLesson()" id="postTypedBtn">🚀 Post Typed Lesson</button>
+    
+    <hr> <input type="file" id="lessonFile">
+    <button onclick="uploadLessonFile()" id="uploadBtn">📁 Upload File (PDF/Image)</button>
+</div>
 
     <div id="typeModeSection">
         <div id="toolbar-container" style="border: 1px solid #ccc; background: #fafafa;"></div>
